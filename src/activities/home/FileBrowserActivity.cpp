@@ -139,9 +139,29 @@ void FileBrowserActivity::loop() {
 
   const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false);
 
-  if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasContentAreaTapped()) {
     if (files.empty()) return;
 
+    // Tap-to-select: map touch Y to list item
+    {
+      const auto& metrics = UITheme::getInstance().getMetrics();
+      const int16_t touchY = mappedInput.getTouchY();
+      const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
+      const int rowHeight = metrics.listRowHeight;
+      if (touchY >= contentTop) {
+        int page = selectorIndex / pageItems;
+        int tappedRow = (touchY - contentTop) / rowHeight;
+        int tappedIndex = page * pageItems + tappedRow;
+        if (tappedIndex >= 0 && tappedIndex < static_cast<int>(files.size())) {
+          selectorIndex = tappedIndex;
+        }
+      }
+    }
+#else
+  if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+    if (files.empty()) return;
+#endif
     const std::string& entry = files[selectorIndex];
     bool isDirectory = (entry.back() == '/');
 

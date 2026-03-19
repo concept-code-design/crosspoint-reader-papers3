@@ -1,12 +1,10 @@
 #include <HalGPIO.h>
-#include <HalM5Mutex.h>
 #include <Logging.h>
-#include <M5Unified.h>
 #include <SPI.h>
 
 // Touch zones in LOGICAL portrait coordinates (540 wide x 960 tall).
 // The physical display is 960x540 landscape; GfxRenderer rotates to portrait.
-// Coordinate transform from touch space to portrait is auto-detected at runtime.
+// GT911 on M5PaperS3 reports in portrait: x[0-539], y[0-959].
 static constexpr int16_t PORT_W = 540;
 static constexpr int16_t PORT_H = 960;
 
@@ -18,23 +16,17 @@ static constexpr int16_t EDGE_STRIP_W = 108;   // 20% width for Up/Down edge str
 void HalGPIO::begin() {
   // Initialize SD card SPI bus with PaperS3 pins
   SPI.begin(PAPERS3_SD_SCK, PAPERS3_SD_MISO, PAPERS3_SD_MOSI, PAPERS3_SD_CS);
-  // Touch is initialized by M5Unified in M5.begin()
+  // Initialize GT911 touch on I2C1 (SDA=41, SCL=42, INT=48)
+  if (!touch.begin(41, 42, 48, 0x14)) {
+    LOG_ERR("GPIO", "GT911 touch init failed");
+  }
 }
 
 int HalGPIO::touchZoneToButton(int16_t touchX, int16_t touchY) const {
-  // Auto-detect coordinate space from current display rotation.
-  // If display reports landscape (width > height), touch is in native 960x540 space
-  // and we must rotate to portrait.  Otherwise touch is already portrait.
-  int16_t logX, logY;
-  if (M5.Display.width() > M5.Display.height()) {
-    // Native landscape touch → portrait: logX = maxY - touchY, logY = touchX
-    logX = (M5.Display.height() - 1) - touchY;
-    logY = touchX;
-  } else {
-    // Already portrait coordinates
-    logX = touchX;
-    logY = touchY;
-  }
+  // GT911 on M5PaperS3 reports portrait coordinates directly: x[0-539], y[0-959].
+  // These map to our portrait logical space without further rotation.
+  int16_t logX = touchX;
+  int16_t logY = touchY;
 
   // Clamp to portrait bounds
   if (logX < 0 || logX >= PORT_W || logY < 0 || logY >= PORT_H) return -1;
@@ -65,32 +57,22 @@ void HalGPIO::update() {
   previousState = currentState;
   currentState = 0;
 
-  // Acquire M5 mutex - M5GFX is not thread-safe; display operations run on render task
-  HalM5Mutex::lock();
-
-  // Update M5Unified state (reads touch + buttons)
-  M5.update();
-
-  // Check physical power button via M5Unified
-  if (M5.BtnPWR.isPressed()) {
-    currentState |= (1 << BTN_POWER);
+  // During cooldown (after activity transition), drain touch events but don't act on them
+  if (millis() < cooldownUntil) {
+    touch.update();  // Drain pending touch reports
+    return;
   }
 
-  // Check touch input
-  auto touchCount = M5.Touch.getCount();
-  if (touchCount > 0) {
-    auto detail = M5.Touch.getDetail(0);
-    if (detail.isPressed()) {
-      int btn = touchZoneToButton(detail.x, detail.y);
-      LOG_DBG("TOUCH", "raw=(%d,%d) btn=%d disp=(%d,%d)", detail.x, detail.y, btn,
-              M5.Display.width(), M5.Display.height());
-      if (btn >= 0 && btn < HALGPIO_NUM_BUTTONS) {
-        currentState |= (1 << btn);
-      }
+  // Poll GT911 touch
+  if (touch.update()) {
+    lastTouchX = touch.getX();
+    lastTouchY = touch.getY();
+    int btn = touchZoneToButton(lastTouchX, lastTouchY);
+    LOG_DBG("TOUCH", "raw=(%d,%d) btn=%d", lastTouchX, lastTouchY, btn);
+    if (btn >= 0 && btn < HALGPIO_NUM_BUTTONS) {
+      currentState |= (1 << btn);
     }
   }
-
-  HalM5Mutex::unlock();
 
   // Track press timing
   uint8_t newPresses = currentState & ~previousState;
@@ -104,6 +86,13 @@ void HalGPIO::update() {
       }
     }
   }
+}
+
+void HalGPIO::clearState() {
+  previousState = 0;
+  currentState = 0;
+  pressStartTime = 0;
+  cooldownUntil = millis() + 200;  // Suppress input for 200ms after activity transition
 }
 
 bool HalGPIO::isPressed(uint8_t buttonIndex) const {
@@ -137,9 +126,10 @@ unsigned long HalGPIO::getHeldTime() const {
 }
 
 bool HalGPIO::isUsbConnected() const {
-  // ESP32-S3 has native USB - check if USB is connected via VBUS detection
-  // On PaperS3, M5Unified handles USB detection
-  return M5.Power.isCharging();
+  // With ARDUINO_USB_CDC_ON_BOOT=1, Serial is USB CDC.
+  // operator bool() returns true when a USB host has connected (DTR asserted).
+  // Serial.begin() must be called before this for reliable results.
+  return Serial;
 }
 
 HalGPIO::WakeupReason HalGPIO::getWakeupReason() const {

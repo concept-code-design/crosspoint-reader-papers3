@@ -17,4 +17,11 @@ class JpegToBmpConverter {
   static bool jpegFileToBmpStreamWithSize(FsFile& jpegFile, Print& bmpOut, int targetMaxWidth, int targetMaxHeight);
   // Convert to 1-bit BMP (black and white only, no grays) for fast home screen rendering
   static bool jpegFileTo1BitBmpStreamWithSize(FsFile& jpegFile, Print& bmpOut, int targetMaxWidth, int targetMaxHeight);
+
+#if CROSSPOINT_PAPERS3
+  // Fast path: decode JPEG from RAM using JPEGDEC with hardware downscaling.
+  // Requires PSRAM for the grayscale decode buffer. ~10-50x faster than picojpeg.
+  static bool jpegMemTo1BitBmp(const uint8_t* jpegData, size_t jpegSize, Print& bmpOut, int targetWidth,
+                               int targetHeight);
+#endif
 };

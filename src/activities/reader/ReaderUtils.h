@@ -59,31 +59,15 @@ inline void displayWithRefreshCycle(const GfxRenderer& renderer, int& pagesUntil
   }
 }
 
-// Grayscale anti-aliasing pass. Renders content twice (LSB + MSB) to build
-// the grayscale buffer. Only the content callback is re-rendered — status bars
-// and other overlays should be drawn before calling this.
-// Kept as a template to avoid std::function overhead; instantiated once per reader type.
+// Single-pass grayscale anti-aliasing. Sets GRAYSCALE_DIRECT mode so the
+// render callback writes EPD gray values (0-3) directly into the 8bpp
+// framebuffer. No LSB/MSB bitplane conversion needed — EPD_Painter accepts
+// 0-3 natively. Caller is responsible for displaying the buffer afterwards.
 template <typename RenderFn>
 void renderAntiAliased(GfxRenderer& renderer, RenderFn&& renderFn) {
-  if (!renderer.storeBwBuffer()) {
-    LOG_ERR("READER", "Failed to store BW buffer for anti-aliasing");
-    return;
-  }
-
-  renderer.clearScreen(0x00);
-  renderer.setRenderMode(GfxRenderer::GRAYSCALE_LSB);
+  renderer.setRenderMode(GfxRenderer::GRAYSCALE_DIRECT);
   renderFn();
-  renderer.copyGrayscaleLsbBuffers();
-
-  renderer.clearScreen(0x00);
-  renderer.setRenderMode(GfxRenderer::GRAYSCALE_MSB);
-  renderFn();
-  renderer.copyGrayscaleMsbBuffers();
-
-  renderer.displayGrayBuffer();
   renderer.setRenderMode(GfxRenderer::BW);
-
-  renderer.restoreBwBuffer();
 }
 
 }  // namespace ReaderUtils

@@ -56,7 +56,23 @@ void EpubReaderMenuActivity::loop() {
     requestUpdate();
   });
 
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasContentAreaTapped()) {
+    // Tap-to-select: map touch Y to menu item
+    {
+      constexpr int lineHeight = 75;
+      const int startY = 85;
+      const int16_t touchY = mappedInput.getTouchY();
+      if (touchY >= startY) {
+        int tappedRow = (touchY - startY) / lineHeight;
+        if (tappedRow >= 0 && tappedRow < static_cast<int>(menuItems.size())) {
+          selectedIndex = tappedRow;
+        }
+      }
+    }
+#else
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+#endif
     const auto selectedAction = menuItems[selectedIndex].action;
     if (selectedAction == MenuAction::ROTATE_SCREEN) {
       // Cycle orientation preview locally; actual rotation happens on menu exit.
@@ -120,8 +136,14 @@ void EpubReaderMenuActivity::render(RenderLock&&) {
   renderer.drawCenteredText(UI_10_FONT_ID, 45, progressLine.c_str());
 
   // Menu Items
-  const int startY = 75 + contentY;
+  const int startY = 85 + contentY;
+#if CROSSPOINT_PAPERS3
+  constexpr int lineHeight = 75;
+#else
   constexpr int lineHeight = 30;
+#endif
+  const int textLineH = renderer.getLineHeight(UI_10_FONT_ID);
+  const int textYOff = (lineHeight - textLineH) / 2;
 
   for (size_t i = 0; i < menuItems.size(); ++i) {
     const int displayY = startY + (i * lineHeight);
@@ -132,20 +154,20 @@ void EpubReaderMenuActivity::render(RenderLock&&) {
       renderer.fillRect(contentX, displayY, contentWidth - 1, lineHeight, true);
     }
 
-    renderer.drawText(UI_10_FONT_ID, contentX + 20, displayY, I18N.get(menuItems[i].labelId), !isSelected);
+    renderer.drawText(UI_10_FONT_ID, contentX + 20, displayY + textYOff, I18N.get(menuItems[i].labelId), !isSelected);
 
     if (menuItems[i].action == MenuAction::ROTATE_SCREEN) {
       // Render current orientation value on the right edge of the content area.
       const char* value = I18N.get(orientationLabels[pendingOrientation]);
       const auto width = renderer.getTextWidth(UI_10_FONT_ID, value);
-      renderer.drawText(UI_10_FONT_ID, contentX + contentWidth - 20 - width, displayY, value, !isSelected);
+      renderer.drawText(UI_10_FONT_ID, contentX + contentWidth - 20 - width, displayY + textYOff, value, !isSelected);
     }
 
     if (menuItems[i].action == MenuAction::AUTO_PAGE_TURN) {
       // Render current page turn value on the right edge of the content area.
       const auto value = pageTurnLabels[selectedPageTurnOption];
       const auto width = renderer.getTextWidth(UI_10_FONT_ID, value);
-      renderer.drawText(UI_10_FONT_ID, contentX + contentWidth - 20 - width, displayY, value, !isSelected);
+      renderer.drawText(UI_10_FONT_ID, contentX + contentWidth - 20 - width, displayY + textYOff, value, !isSelected);
     }
   }
 

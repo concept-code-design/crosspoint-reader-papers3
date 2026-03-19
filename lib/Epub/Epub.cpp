@@ -627,13 +627,45 @@ bool Epub::generateThumbBmp(int height) const {
     LOG_DBG("EBP", "No known cover image for thumbnail");
   } else if (FsHelpers::hasJpgExtension(coverImageHref)) {
     LOG_DBG("EBP", "Generating thumb BMP from JPG cover image");
+    int THUMB_TARGET_WIDTH = height * 0.6;
+    int THUMB_TARGET_HEIGHT = height;
+
+#if CROSSPOINT_PAPERS3
+    // Fast path: load JPEG to PSRAM, decode with JPEGDEC at 1/8 scale (skips temp file + picojpeg)
+    {
+      const std::string normPath = FsHelpers::normalisePath(coverImageHref);
+      size_t jpegSize = 0;
+      uint8_t* jpegData = ZipFile(filepath).readFileToMemory(normPath.c_str(), &jpegSize);
+      if (jpegData) {
+        FsFile thumbBmp;
+        if (Storage.openFileForWrite("EBP", getThumbBmpPath(height), thumbBmp)) {
+          const bool success =
+              JpegToBmpConverter::jpegMemTo1BitBmp(jpegData, jpegSize, thumbBmp, THUMB_TARGET_WIDTH, THUMB_TARGET_HEIGHT);
+          free(jpegData);
+          thumbBmp.close();
+          if (success) {
+            LOG_DBG("EBP", "Generated thumb BMP from JPG cover image (fast path), success: yes");
+            return true;
+          }
+          LOG_ERR("EBP", "JPEGDEC fast path failed, falling back to picojpeg");
+          Storage.remove(getThumbBmpPath(height).c_str());
+        } else {
+          free(jpegData);
+          return false;
+        }
+      } else {
+        LOG_ERR("EBP", "Failed to load cover JPEG to RAM, falling back to streaming path");
+      }
+    }
+#endif
+
     const auto coverJpgTempPath = getCachePath() + "/.cover.jpg";
 
     FsFile coverJpg;
     if (!Storage.openFileForWrite("EBP", coverJpgTempPath, coverJpg)) {
       return false;
     }
-    readItemContentsToStream(coverImageHref, coverJpg, 1024);
+    readItemContentsToStream(coverImageHref, coverJpg, 8192);
     coverJpg.close();
 
     if (!Storage.openFileForRead("EBP", coverJpgTempPath, coverJpg)) {
@@ -645,10 +677,7 @@ bool Epub::generateThumbBmp(int height) const {
       coverJpg.close();
       return false;
     }
-    // Use smaller target size for Continue Reading card (half of screen: 240x400)
     // Generate 1-bit BMP for fast home screen rendering (no gray passes needed)
-    int THUMB_TARGET_WIDTH = height * 0.6;
-    int THUMB_TARGET_HEIGHT = height;
     const bool success = JpegToBmpConverter::jpegFileTo1BitBmpStreamWithSize(coverJpg, thumbBmp, THUMB_TARGET_WIDTH,
                                                                              THUMB_TARGET_HEIGHT);
     coverJpg.close();

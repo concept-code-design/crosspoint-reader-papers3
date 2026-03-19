@@ -192,20 +192,13 @@ void SleepActivity::renderBitmapSleepScreen(const Bitmap& bitmap) const {
   renderer.displayBuffer(HalDisplay::HALF_REFRESH);
 
   if (hasGreyscale) {
+    // Re-render with GRAYSCALE_DIRECT to write gray values (0-3) directly
     bitmap.rewindToData();
-    renderer.clearScreen(0x00);
-    renderer.setRenderMode(GfxRenderer::GRAYSCALE_LSB);
+    renderer.clearScreen();
+    renderer.setRenderMode(GfxRenderer::GRAYSCALE_DIRECT);
     renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, cropX, cropY);
-    renderer.copyGrayscaleLsbBuffers();
-
-    bitmap.rewindToData();
-    renderer.clearScreen(0x00);
-    renderer.setRenderMode(GfxRenderer::GRAYSCALE_MSB);
-    renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, cropX, cropY);
-    renderer.copyGrayscaleMsbBuffers();
-
-    renderer.displayGrayBuffer();
     renderer.setRenderMode(GfxRenderer::BW);
+    renderer.displayBuffer(HalDisplay::HALF_REFRESH);
   }
 }
 

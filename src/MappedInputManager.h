@@ -16,6 +16,16 @@ class MappedInputManager {
   explicit MappedInputManager(HalGPIO& gpio) : gpio(gpio) {}
 
   void update() const { gpio.update(); }
+  void clearState() const { gpio.clearState(); }
+
+  // Raw touch coordinate access for tap-to-select navigation
+  int16_t getTouchX() const { return gpio.getLastTouchX(); }
+  int16_t getTouchY() const { return gpio.getLastTouchY(); }
+  // Returns true if any touch in the content area was released (not Back zone).
+  // Use this for list/menu activities where any tap should select an item.
+  bool wasContentAreaTapped() const {
+    return gpio.wasAnyReleased() && !gpio.wasReleased(HalGPIO::BTN_BACK);
+  }
   bool wasPressed(Button button) const;
   bool wasReleased(Button button) const;
   bool isPressed(Button button) const;

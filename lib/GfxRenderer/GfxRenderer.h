@@ -18,7 +18,7 @@ enum Color : uint8_t { Clear = 0x00, White = 0x01, LightGray = 0x05, DarkGray = 
 
 class GfxRenderer {
  public:
-  enum RenderMode { BW, GRAYSCALE_LSB, GRAYSCALE_MSB };
+  enum RenderMode { BW, GRAYSCALE_DIRECT, GRAYSCALE_LSB, GRAYSCALE_MSB };
 
   // Logical screen orientation from the perspective of callers
   enum Orientation {
@@ -29,17 +29,13 @@ class GfxRenderer {
   };
 
  private:
-  static constexpr size_t BW_BUFFER_CHUNK_SIZE = 8100;  // ~8KB chunks to allow for non-contiguous memory (must evenly divide BUFFER_SIZE)
-  static constexpr size_t BW_BUFFER_NUM_CHUNKS = HalDisplay::BUFFER_SIZE / BW_BUFFER_CHUNK_SIZE;
-  static_assert(BW_BUFFER_CHUNK_SIZE * BW_BUFFER_NUM_CHUNKS == HalDisplay::BUFFER_SIZE,
-                "BW buffer chunking does not line up with display buffer size");
-
   HalDisplay& display;
   RenderMode renderMode;
   Orientation orientation;
   bool fadingFix;
+  mutable bool forceNextFullRefresh = false;  // Consumed by displayBuffer()
   uint8_t* frameBuffer = nullptr;
-  uint8_t* bwBufferChunks[BW_BUFFER_NUM_CHUNKS] = {nullptr};
+  uint8_t* bwBufferStored = nullptr;  // Single PSRAM allocation for BW buffer backup
   std::map<int, EpdFontFamily> fontMap;
 
   // Mutable because drawText() is const but needs to delegate scan-mode
@@ -49,7 +45,6 @@ class GfxRenderer {
 
   void renderChar(const EpdFontFamily& fontFamily, uint32_t cp, int* x, int* y, bool pixelState,
                   EpdFontFamily::Style style) const;
-  void freeBwBufferChunks();
   template <Color color>
   void drawPixelDither(int x, int y) const;
   template <Color color>
@@ -58,12 +53,19 @@ class GfxRenderer {
  public:
   explicit GfxRenderer(HalDisplay& halDisplay)
       : display(halDisplay), renderMode(BW), orientation(Portrait), fadingFix(false) {}
-  ~GfxRenderer() { freeBwBufferChunks(); }
+  ~GfxRenderer() { if (bwBufferStored) { free(bwBufferStored); bwBufferStored = nullptr; } }
 
+#if CROSSPOINT_PAPERS3
+  static constexpr int VIEWABLE_MARGIN_TOP = 9;
+  static constexpr int VIEWABLE_MARGIN_RIGHT = 3;
+  static constexpr int VIEWABLE_MARGIN_BOTTOM = 16;
+  static constexpr int VIEWABLE_MARGIN_LEFT = 3;
+#else
   static constexpr int VIEWABLE_MARGIN_TOP = 9;
   static constexpr int VIEWABLE_MARGIN_RIGHT = 3;
   static constexpr int VIEWABLE_MARGIN_BOTTOM = 3;
   static constexpr int VIEWABLE_MARGIN_LEFT = 3;
+#endif
 
   // Setup
   void begin();  // must be called right after display.begin()
@@ -83,6 +85,8 @@ class GfxRenderer {
   int getScreenWidth() const;
   int getScreenHeight() const;
   void displayBuffer(HalDisplay::RefreshMode refreshMode = HalDisplay::FAST_REFRESH) const;
+  // Force the next displayBuffer() to use FULL_REFRESH (consumed after one use)
+  void requestFullRefresh() { forceNextFullRefresh = true; }
   // EXPERIMENTAL: Windowed update - display only a rectangular region
   // void displayWindow(int x, int y, int width, int height) const;
   void invertScreen() const;
@@ -91,6 +95,7 @@ class GfxRenderer {
 
   // Drawing
   void drawPixel(int x, int y, bool state = true) const;
+  void drawPixelGray(int x, int y, uint8_t epdValue) const;
   void drawLine(int x1, int y1, int x2, int y2, bool state = true) const;
   void drawLine(int x1, int y1, int x2, int y2, int lineWidth, bool state) const;
   void drawArc(int maxRadius, int cx, int cy, int xDir, int yDir, int lineWidth, bool state) const;

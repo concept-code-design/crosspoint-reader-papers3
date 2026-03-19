@@ -122,15 +122,15 @@ static void renderCharImpl(const GfxRenderer& renderer, GfxRenderer::RenderMode 
           // 0 -> black, 1 -> dark grey, 2 -> light grey, 3 -> white
           const uint8_t bmpVal = 3 - ((byte >> bit_index) & 0x3);
 
-          if (renderMode == GfxRenderer::BW && bmpVal < 3) {
+          if (renderMode == GfxRenderer::GRAYSCALE_DIRECT && bmpVal < 3) {
+            // Write EPD gray value directly: bmpVal 0→3(black), 1→2(dk gray), 2→1(lt gray)
+            renderer.drawPixelGray(screenX, screenY, 3 - bmpVal);
+          } else if (renderMode == GfxRenderer::BW && bmpVal < 3) {
             // Black (also paints over the grays in BW mode)
             renderer.drawPixel(screenX, screenY, pixelState);
           } else if (renderMode == GfxRenderer::GRAYSCALE_MSB && (bmpVal == 1 || bmpVal == 2)) {
-            // Light gray (also mark the MSB if it's going to be a dark gray too)
-            // We have to flag pixels in reverse for the gray buffers, as 0 leave alone, 1 update
             renderer.drawPixel(screenX, screenY, false);
           } else if (renderMode == GfxRenderer::GRAYSCALE_LSB && bmpVal == 1) {
-            // Dark gray
             renderer.drawPixel(screenX, screenY, false);
           }
         }
@@ -176,15 +176,18 @@ void GfxRenderer::drawPixel(const int x, const int y, const bool state) const {
     return;
   }
 
-  // Calculate byte position and bit position
-  const uint16_t byteIndex = phyY * HalDisplay::DISPLAY_WIDTH_BYTES + (phyX / 8);
-  const uint8_t bitPosition = 7 - (phyX % 8);  // MSB first
+  // 8bpp: one byte per pixel, 0=white, 3=black
+  const uint32_t index = phyY * HalDisplay::DISPLAY_WIDTH + phyX;
+  frameBuffer[index] = state ? 3 : 0;
+}
 
-  if (state) {
-    frameBuffer[byteIndex] &= ~(1 << bitPosition);  // Clear bit
-  } else {
-    frameBuffer[byteIndex] |= 1 << bitPosition;  // Set bit
-  }
+void GfxRenderer::drawPixelGray(const int x, const int y, const uint8_t epdValue) const {
+  int phyX = 0;
+  int phyY = 0;
+  rotateCoordinates(orientation, x, y, &phyX, &phyY);
+  if (phyX < 0 || phyX >= HalDisplay::DISPLAY_WIDTH || phyY < 0 || phyY >= HalDisplay::DISPLAY_HEIGHT) return;
+  const uint32_t index = phyY * HalDisplay::DISPLAY_WIDTH + phyX;
+  frameBuffer[index] = epdValue;
 }
 
 int GfxRenderer::getTextWidth(const int fontId, const char* text, const EpdFontFamily::Style style) const {
@@ -662,7 +665,10 @@ void GfxRenderer::drawBitmap(const Bitmap& bitmap, const int x, const int y, con
 
       const uint8_t val = outputRow[bmpX / 4] >> (6 - ((bmpX * 2) % 8)) & 0x3;
 
-      if (renderMode == BW && val < 3) {
+      if (renderMode == GRAYSCALE_DIRECT && val < 3) {
+        // val: 0=black, 1=dark grey, 2=light grey; EPD: 0=white, 3=black
+        drawPixelGray(screenX, screenY, 3 - val);
+      } else if (renderMode == BW && val < 3) {
         drawPixel(screenX, screenY);
       } else if (renderMode == GRAYSCALE_MSB && (val == 1 || val == 2)) {
         drawPixel(screenX, screenY, false);
@@ -735,7 +741,11 @@ void GfxRenderer::drawBitmap1Bit(const Bitmap& bitmap, const int x, const int y,
       // For 1-bit source: 0 or 1 -> map to black (0,1,2) or white (3)
       // val < 3 means black pixel (draw it)
       if (val < 3) {
-        drawPixel(screenX, screenY, true);
+        if (renderMode == GRAYSCALE_DIRECT) {
+          drawPixelGray(screenX, screenY, 3 - val);
+        } else {
+          drawPixel(screenX, screenY, true);
+        }
       }
       // White pixels (val == 3) are not drawn (leave background)
     }
@@ -822,15 +832,21 @@ void GfxRenderer::clearScreen(const uint8_t color) const {
 }
 
 void GfxRenderer::invertScreen() const {
-  for (int i = 0; i < HalDisplay::BUFFER_SIZE; i++) {
-    frameBuffer[i] = ~frameBuffer[i];
+  for (uint32_t i = 0; i < HalDisplay::BUFFER_SIZE; i++) {
+    frameBuffer[i] = 3 - frameBuffer[i];
   }
 }
 
 void GfxRenderer::displayBuffer(const HalDisplay::RefreshMode refreshMode) const {
   auto elapsed = millis() - start_ms;
   LOG_DBG("GFX", "Time = %lu ms from clearScreen to displayBuffer", elapsed);
-  display.displayBuffer(refreshMode, fadingFix);
+  // If a full refresh was requested (e.g. activity transition), override the mode
+  auto mode = refreshMode;
+  if (forceNextFullRefresh) {
+    mode = HalDisplay::FULL_REFRESH;
+    forceNextFullRefresh = false;
+  }
+  display.displayBuffer(mode, fadingFix);
 }
 
 std::string GfxRenderer::truncatedText(const int fontId, const char* text, const int maxWidth,
@@ -1106,77 +1122,33 @@ void GfxRenderer::copyGrayscaleMsbBuffers() const { display.copyGrayscaleMsbBuff
 
 void GfxRenderer::displayGrayBuffer() const { display.displayGrayBuffer(fadingFix); }
 
-void GfxRenderer::freeBwBufferChunks() {
-  for (auto& bwBufferChunk : bwBufferChunks) {
-    if (bwBufferChunk) {
-      free(bwBufferChunk);
-      bwBufferChunk = nullptr;
-    }
-  }
-}
-
-/**
- * This should be called before grayscale buffers are populated.
- * A `restoreBwBuffer` call should always follow the grayscale render if this method was called.
- * Uses chunked allocation to avoid needing 48KB of contiguous memory.
- * Returns true if buffer was stored successfully, false if allocation failed.
- */
 bool GfxRenderer::storeBwBuffer() {
-  // Allocate and copy each chunk
-  for (size_t i = 0; i < BW_BUFFER_NUM_CHUNKS; i++) {
-    // Check if any chunks are already allocated
-    if (bwBufferChunks[i]) {
-      LOG_ERR("GFX", "!! BW buffer chunk %zu already stored - this is likely a bug, freeing chunk", i);
-      free(bwBufferChunks[i]);
-      bwBufferChunks[i] = nullptr;
-    }
-
-    const size_t offset = i * BW_BUFFER_CHUNK_SIZE;
-    bwBufferChunks[i] = static_cast<uint8_t*>(malloc(BW_BUFFER_CHUNK_SIZE));
-
-    if (!bwBufferChunks[i]) {
-      LOG_ERR("GFX", "!! Failed to allocate BW buffer chunk %zu (%zu bytes)", i, BW_BUFFER_CHUNK_SIZE);
-      // Free previously allocated chunks
-      freeBwBufferChunks();
-      return false;
-    }
-
-    memcpy(bwBufferChunks[i], frameBuffer + offset, BW_BUFFER_CHUNK_SIZE);
+  if (bwBufferStored) {
+    LOG_ERR("GFX", "!! BW buffer already stored - freeing old one");
+    free(bwBufferStored);
+    bwBufferStored = nullptr;
   }
 
-  LOG_DBG("GFX", "Stored BW buffer in %zu chunks (%zu bytes each)", BW_BUFFER_NUM_CHUNKS, BW_BUFFER_CHUNK_SIZE);
+  bwBufferStored = static_cast<uint8_t*>(heap_caps_malloc(HalDisplay::BUFFER_SIZE, MALLOC_CAP_SPIRAM));
+  if (!bwBufferStored) {
+    LOG_ERR("GFX", "!! Failed to allocate BW buffer backup (%u bytes)", HalDisplay::BUFFER_SIZE);
+    return false;
+  }
+
+  memcpy(bwBufferStored, frameBuffer, HalDisplay::BUFFER_SIZE);
+  LOG_DBG("GFX", "Stored BW buffer (%u bytes)", HalDisplay::BUFFER_SIZE);
   return true;
 }
 
-/**
- * This can only be called if `storeBwBuffer` was called prior to the grayscale render.
- * It should be called to restore the BW buffer state after grayscale rendering is complete.
- * Uses chunked restoration to match chunked storage.
- */
 void GfxRenderer::restoreBwBuffer() {
-  // Check if all chunks are allocated
-  bool missingChunks = false;
-  for (const auto& bwBufferChunk : bwBufferChunks) {
-    if (!bwBufferChunk) {
-      missingChunks = true;
-      break;
-    }
-  }
+  if (!bwBufferStored) return;
 
-  if (missingChunks) {
-    freeBwBufferChunks();
-    return;
-  }
-
-  for (size_t i = 0; i < BW_BUFFER_NUM_CHUNKS; i++) {
-    const size_t offset = i * BW_BUFFER_CHUNK_SIZE;
-    memcpy(frameBuffer + offset, bwBufferChunks[i], BW_BUFFER_CHUNK_SIZE);
-  }
-
+  memcpy(frameBuffer, bwBufferStored, HalDisplay::BUFFER_SIZE);
   display.cleanupGrayscaleBuffers(frameBuffer);
 
-  freeBwBufferChunks();
-  LOG_DBG("GFX", "Restored and freed BW buffer chunks");
+  free(bwBufferStored);
+  bwBufferStored = nullptr;
+  LOG_DBG("GFX", "Restored and freed BW buffer");
 }
 
 /**

@@ -287,9 +287,22 @@ void LyraTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
     textWidth -= iconSize + hPaddingInSelection;
   }
 
+  // Compute vertical centering offsets
+  const int titleLineH = renderer.getLineHeight(UI_10_FONT_ID);
+  int textYOffset;  // Y offset from itemY to vertically center text in row
+  int subtitleYOffset = 0;
+  if (rowSubtitle != nullptr) {
+    const int subtitleLineH = renderer.getLineHeight(SMALL_FONT_ID);
+    constexpr int subtitleGap = 4;
+    const int totalTextH = titleLineH + subtitleGap + subtitleLineH;
+    textYOffset = (rowHeight - totalTextH) / 2;
+    subtitleYOffset = textYOffset + titleLineH + subtitleGap;
+  } else {
+    textYOffset = (rowHeight - titleLineH) / 2;
+  }
+
   // Draw all items
   const auto pageStartIndex = selectedIndex / pageItems * pageItems;
-  int iconY = (rowSubtitle != nullptr) ? 16 : 10;
   for (int i = pageStartIndex; i < itemCount && i < pageStartIndex + pageItems; i++) {
     const int itemY = rect.y + (i % pageItems) * rowHeight;
     int rowTextWidth = textWidth;
@@ -306,14 +319,15 @@ void LyraTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
 
     auto itemName = rowTitle(i);
     auto item = renderer.truncatedText(UI_10_FONT_ID, itemName.c_str(), rowTextWidth);
-    renderer.drawText(UI_10_FONT_ID, textX, itemY + 7, item.c_str(), true);
+    renderer.drawText(UI_10_FONT_ID, textX, itemY + textYOffset, item.c_str(), true);
 
     if (rowIcon != nullptr) {
       UIIcon icon = rowIcon(i);
       const uint8_t* iconBitmap = iconForName(icon, iconSize);
       if (iconBitmap != nullptr) {
+        const int iconYOff = (rowHeight - iconSize) / 2;
         renderer.drawIcon(iconBitmap, rect.x + LyraMetrics::values.contentSidePadding + hPaddingInSelection,
-                          itemY + iconY, iconSize, iconSize);
+                          itemY + iconYOff, iconSize, iconSize);
       }
     }
 
@@ -321,7 +335,7 @@ void LyraTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
       // Draw subtitle
       std::string subtitleText = rowSubtitle(i);
       auto subtitle = renderer.truncatedText(SMALL_FONT_ID, subtitleText.c_str(), rowTextWidth);
-      renderer.drawText(SMALL_FONT_ID, textX, itemY + 30, subtitle.c_str(), true);
+      renderer.drawText(SMALL_FONT_ID, textX, itemY + subtitleYOffset, subtitle.c_str(), true);
     }
 
     // Draw value
@@ -333,7 +347,7 @@ void LyraTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
       }
 
       renderer.drawText(UI_10_FONT_ID, rect.x + contentWidth - LyraMetrics::values.contentSidePadding - valueWidth,
-                        itemY + 6, valueText.c_str(), !(i == selectedIndex && highlightValue));
+                        itemY + textYOffset, valueText.c_str(), !(i == selectedIndex && highlightValue));
     }
   }
 }

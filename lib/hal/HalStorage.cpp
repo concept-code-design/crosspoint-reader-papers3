@@ -9,7 +9,11 @@
 
 namespace {
 constexpr uint8_t SD_CS_PIN = PAPERS3_SD_CS;
-constexpr uint32_t SPI_FREQ = 25000000;  // 25MHz for PaperS3 SD card
+#if CROSSPOINT_PAPERS3
+constexpr uint32_t SPI_FREQ = 40000000;  // 40MHz — ESP32-S3 SPI supports higher clocks
+#else
+constexpr uint32_t SPI_FREQ = 25000000;  // 25MHz for X4 SD card
+#endif
 SdFat sd;
 bool sdInitialized = false;
 }  // namespace

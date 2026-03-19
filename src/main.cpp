@@ -10,7 +10,6 @@
 #include <HalSystem.h>
 #include <I18n.h>
 #include <Logging.h>
-#include <M5Unified.h>
 #include <SPI.h>
 #include <builtinFonts/all.h>
 
@@ -232,23 +231,20 @@ void setupDisplayAndFonts() {
 void setup() {
   t1 = millis();
 
-  // Initialize M5Unified first - sets up display, touch, power management, I2C
-  auto cfg = M5.config();
-  M5.begin(cfg);
+  // Always start Serial first — with ARDUINO_USB_CDC_ON_BOOT=1 it's USB CDC.
+  // We must wait for USB enumeration so isUsbConnected() (which uses Serial)
+  // returns the correct value before getWakeupReason() is called.
+  Serial.begin(115200);
+  {
+    unsigned long start = millis();
+    while (!Serial && (millis() - start) < 2000) {
+      delay(10);
+    }
+  }
 
   HalSystem::begin();
   gpio.begin();
   powerManager.begin();
-
-  // Only start serial if USB connected
-  if (gpio.isUsbConnected()) {
-    Serial.begin(115200);
-    // Wait up to 3 seconds for Serial to be ready to catch early logs
-    unsigned long start = millis();
-    while (!Serial && (millis() - start) < 3000) {
-      delay(10);
-    }
-  }
 
   // SD Card Initialization
   // We need 6 open files concurrently when parsing a new chapter
@@ -403,6 +399,11 @@ void loop() {
     powerManager.setPowerSaving(false);  // Make sure we're at full performance when skipLoopDelay is requested
     yield();                             // Give FreeRTOS a chance to run tasks, but return immediately
   } else {
+#if CROSSPOINT_PAPERS3
+    // PaperS3: minimal delay for fast touch response (~500Hz polling).
+    // Power management is handled by the PMIC, not CPU throttling.
+    delay(2);
+#else
     if (millis() - lastActivityTime >= HalPowerManager::IDLE_POWER_SAVING_MS) {
       // If we've been inactive for a while, increase the delay to save power
       powerManager.setPowerSaving(true);  // Lower CPU frequency after extended inactivity
@@ -411,5 +412,6 @@ void loop() {
       // Short delay to prevent tight loop while still being responsive
       delay(10);
     }
+#endif
   }
 }

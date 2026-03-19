@@ -1,6 +1,8 @@
 #pragma once
 #include <Arduino.h>
 
+class EPD_Painter;
+
 class HalDisplay {
  public:
   // Constructor
@@ -12,8 +14,8 @@ class HalDisplay {
   // Refresh modes
   enum RefreshMode {
     FULL_REFRESH,  // Full refresh with complete waveform
-    HALF_REFRESH,  // Half refresh (1720ms) - balanced quality and speed
-    FAST_REFRESH   // Fast refresh using custom LUT
+    HALF_REFRESH,  // Half refresh - balanced quality and speed
+    FAST_REFRESH   // Fast refresh
   };
 
   // Initialize the display hardware and driver
@@ -22,8 +24,10 @@ class HalDisplay {
   // Display dimensions (M5PaperS3: 960x540 physical landscape)
   static constexpr uint16_t DISPLAY_WIDTH = 960;
   static constexpr uint16_t DISPLAY_HEIGHT = 540;
+  // 8bpp framebuffer: 1 byte per pixel, values 0(white)..3(black) — EPD_Painter native format
+  static constexpr uint32_t BUFFER_SIZE = DISPLAY_WIDTH * DISPLAY_HEIGHT;
+  // For unpacking 1-bit source images only
   static constexpr uint16_t DISPLAY_WIDTH_BYTES = DISPLAY_WIDTH / 8;
-  static constexpr uint32_t BUFFER_SIZE = DISPLAY_WIDTH_BYTES * DISPLAY_HEIGHT;
 
   // Frame buffer operations
   void clearScreen(uint8_t color = 0xFF) const;
@@ -49,14 +53,14 @@ class HalDisplay {
   void displayGrayBuffer(bool turnOffScreen = false);
 
  private:
-  // 1-bit framebuffer allocated in PSRAM, compatible with GfxRenderer
+  // 8bpp framebuffer in PSRAM — EPD_Painter native format (0=white, 3=black)
   uint8_t* frameBuffer;
 
-  // Grayscale bit plane buffers (allocated on demand for two-pass rendering)
+  // EPD_Painter driver instance
+  EPD_Painter* epd = nullptr;
+
+  // Grayscale buffers (8bpp, allocated on demand for two-pass rendering)
   uint8_t* grayLsbBuffer = nullptr;
   uint8_t* grayMsbBuffer = nullptr;
   void freeGrayscaleBuffers();
-
-  // Push our 1-bit framebuffer to the M5GFX EPD display
-  void pushFrameBufferToDisplay();
 };

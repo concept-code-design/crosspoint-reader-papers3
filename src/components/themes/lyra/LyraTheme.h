@@ -13,10 +13,17 @@ constexpr ThemeMetrics values = {.batteryWidth = 16,
                                  .headerHeight = 84,
                                  .verticalSpacing = 16,
                                  .contentSidePadding = 20,
+#if CROSSPOINT_PAPERS3
+                                 .listRowHeight = 120,
+                                 .listWithSubtitleRowHeight = 140,
+                                 .menuRowHeight = 120,
+                                 .menuSpacing = 16,
+#else
                                  .listRowHeight = 40,
                                  .listWithSubtitleRowHeight = 60,
                                  .menuRowHeight = 64,
                                  .menuSpacing = 8,
+#endif
                                  .tabSpacing = 8,
                                  .tabBarHeight = 40,
                                  .scrollBarWidth = 4,

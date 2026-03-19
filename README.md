@@ -99,4 +99,6 @@ Deleting `.crosspoint/` clears the entire cache.
 
 Ported from [crosspoint-reader](https://github.com/crosspoint-reader/crosspoint-reader) (originally targeting Xteink X4 / ESP32-C3).
 
+Display driver powered by [**EPD_Painter**](https://github.com/nickoala/EPD_Painter) — fast parallel e-ink rendering for IT8951-based displays on ESP32-S3.
+
 Huge shoutout to [**diy-esp32-epub-reader** by atomic14](https://github.com/atomic14/diy-esp32-epub-reader) for the original inspiration.

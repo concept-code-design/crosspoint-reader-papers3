@@ -30,7 +30,10 @@ inline uint8_t applyBayerDither4Level(uint8_t gray, int x, int y) {
 // Draw a pixel respecting the current render mode for grayscale support
 inline void drawPixelWithRenderMode(GfxRenderer& renderer, int x, int y, uint8_t pixelValue) {
   GfxRenderer::RenderMode renderMode = renderer.getRenderMode();
-  if (renderMode == GfxRenderer::BW && pixelValue < 3) {
+  if (renderMode == GfxRenderer::GRAYSCALE_DIRECT && pixelValue < 3) {
+    // pixelValue: 0=black, 1=dark grey, 2=light grey; EPD: 0=white, 3=black
+    renderer.drawPixelGray(x, y, 3 - pixelValue);
+  } else if (renderMode == GfxRenderer::BW && pixelValue < 3) {
     renderer.drawPixel(x, y, true);
   } else if (renderMode == GfxRenderer::GRAYSCALE_MSB && (pixelValue == 1 || pixelValue == 2)) {
     renderer.drawPixel(x, y, false);

@@ -56,8 +56,10 @@ void EpubReaderActivity::onEnter() {
 
   epub->setupCacheDir();
 
+  bool isFirstOpen = true;
   FsFile f;
   if (Storage.openFileForRead("ERS", epub->getCachePath() + "/progress.bin", f)) {
+    isFirstOpen = false;
     uint8_t data[6];
     int dataSize = f.read(data, 6);
     if (dataSize == 4 || dataSize == 6) {
@@ -71,13 +73,15 @@ void EpubReaderActivity::onEnter() {
     }
     f.close();
   }
-  // We may want a better condition to detect if we are opening for the first time.
-  // This will trigger if the book is re-opened at Chapter 0.
-  if (currentSpineIndex == 0) {
+  if (isFirstOpen) {
     int textSpineIndex = epub->getSpineIndexForTextReference();
-    if (textSpineIndex != 0) {
+    if (textSpineIndex > 0) {
       currentSpineIndex = textSpineIndex;
-      LOG_DBG("ERS", "Opened for first time, navigating to text reference at index %d", textSpineIndex);
+      LOG_DBG("ERS", "First open: navigating to text reference at spine %d", textSpineIndex);
+    } else if (epub->getSpineItemsCount() > 1) {
+      // No text reference found; skip spine 0 (likely cover page) if the book has multiple spine items
+      currentSpineIndex = 1;
+      LOG_DBG("ERS", "First open: no text reference, skipping cover (spine 0 -> 1)");
     }
   }
 
@@ -679,85 +683,41 @@ void EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int or
   LOG_DBG("ERS", "Heap: before=%lu after=%lu delta=%ld", heapBefore, heapAfter,
           (int32_t)heapAfter - (int32_t)heapBefore);
 
-  // Force special handling for pages with images when anti-aliasing is on
-  bool imagePageWithAA = page->hasImages() && SETTINGS.textAntiAliasing;
+  // Use GRAYSCALE_DIRECT for anti-aliased fonts: writes EPD gray values (0-3)
+  // directly into the 8bpp framebuffer in a single pass. No LSB/MSB bitplane
+  // conversion needed — EPD_Painter accepts 0-3 natively.
+  if (SETTINGS.textAntiAliasing) {
+    renderer.setRenderMode(GfxRenderer::GRAYSCALE_DIRECT);
+  }
 
   page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
+  renderer.setRenderMode(GfxRenderer::BW);
   renderStatusBar();
   fcm->logStats("bw_render");
   const auto tBwRender = millis();
 
+  bool imagePageWithAA = page->hasImages() && SETTINGS.textAntiAliasing;
   if (imagePageWithAA) {
-    // Double FAST_REFRESH with selective image blanking (pablohc's technique):
-    // HALF_REFRESH sets particles too firmly for the grayscale LUT to adjust.
-    // Instead, blank only the image area and do two fast refreshes.
-    // Step 1: Display page with image area blanked (text appears, image area white)
-    // Step 2: Re-render with images and display again (images appear clean)
     int16_t imgX, imgY, imgW, imgH;
     if (page->getImageBoundingBox(imgX, imgY, imgW, imgH)) {
       renderer.fillRect(imgX + orientedMarginLeft, imgY + orientedMarginTop, imgW, imgH, false);
       renderer.displayBuffer(HalDisplay::FAST_REFRESH);
-
-      // Re-render page content to restore images into the blanked area
+      if (SETTINGS.textAntiAliasing) renderer.setRenderMode(GfxRenderer::GRAYSCALE_DIRECT);
       page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
+      renderer.setRenderMode(GfxRenderer::BW);
       renderStatusBar();
       renderer.displayBuffer(HalDisplay::FAST_REFRESH);
     } else {
       renderer.displayBuffer(HalDisplay::HALF_REFRESH);
     }
-    // Double FAST_REFRESH handles ghosting for image pages; don't count toward full refresh cadence
   } else {
     ReaderUtils::displayWithRefreshCycle(renderer, pagesUntilFullRefresh);
   }
   const auto tDisplay = millis();
 
-  // Save bw buffer to reset buffer state after grayscale data sync
-  renderer.storeBwBuffer();
-  const auto tBwStore = millis();
-
-  // grayscale rendering
-  // TODO: Only do this if font supports it
-  if (SETTINGS.textAntiAliasing) {
-    renderer.clearScreen(0x00);
-    renderer.setRenderMode(GfxRenderer::GRAYSCALE_LSB);
-    page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
-    renderer.copyGrayscaleLsbBuffers();
-    const auto tGrayLsb = millis();
-
-    // Render and copy to MSB buffer
-    renderer.clearScreen(0x00);
-    renderer.setRenderMode(GfxRenderer::GRAYSCALE_MSB);
-    page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
-    renderer.copyGrayscaleMsbBuffers();
-    const auto tGrayMsb = millis();
-
-    // display grayscale part
-    renderer.displayGrayBuffer();
-    const auto tGrayDisplay = millis();
-    renderer.setRenderMode(GfxRenderer::BW);
-    fcm->logStats("gray");
-
-    // restore the bw data
-    renderer.restoreBwBuffer();
-    const auto tBwRestore = millis();
-
-    const auto tEnd = millis();
-    LOG_DBG("ERS",
-            "Page render: prewarm=%lums bw_render=%lums display=%lums bw_store=%lums "
-            "gray_lsb=%lums gray_msb=%lums gray_display=%lums bw_restore=%lums total=%lums",
-            tPrewarm - t0, tBwRender - tPrewarm, tDisplay - tBwRender, tBwStore - tDisplay, tGrayLsb - tBwStore,
-            tGrayMsb - tGrayLsb, tGrayDisplay - tGrayMsb, tBwRestore - tGrayDisplay, tEnd - t0);
-  } else {
-    // restore the bw data
-    renderer.restoreBwBuffer();
-    const auto tBwRestore = millis();
-
-    const auto tEnd = millis();
-    LOG_DBG("ERS",
-            "Page render: prewarm=%lums bw_render=%lums display=%lums bw_store=%lums bw_restore=%lums total=%lums",
-            tPrewarm - t0, tBwRender - tPrewarm, tDisplay - tBwRender, tBwStore - tDisplay, tBwRestore - tBwStore,
-            tEnd - t0);
-  }
+  const auto tEnd = millis();
+  LOG_DBG("ERS", "Page render: prewarm=%lums render=%lums display=%lums total=%lums",
+          tPrewarm - t0, tBwRender - tPrewarm, tDisplay - tBwRender, tEnd - t0);
 }
 
 void EpubReaderActivity::renderStatusBar() const {

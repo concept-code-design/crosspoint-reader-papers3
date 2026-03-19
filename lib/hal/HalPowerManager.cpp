@@ -1,13 +1,15 @@
 #include "HalPowerManager.h"
 
 #include <Logging.h>
-#include <M5Unified.h>
 #include <WiFi.h>
 #include <esp_sleep.h>
 
 #include <cassert>
 
 #include "HalGPIO.h"
+
+// M5PaperS3 power-off pulse pin (active-high pulse turns off PMIC)
+static constexpr int PWROFF_PULSE_PIN = 44;
 
 HalPowerManager powerManager;  // Singleton instance
 
@@ -18,6 +20,13 @@ void HalPowerManager::begin() {
 }
 
 void HalPowerManager::setPowerSaving(bool enabled) {
+#if CROSSPOINT_PAPERS3
+  // PaperS3 has a dedicated PMIC for power management and deep-sleeps via
+  // GPIO44 pulse.  CPU throttling from 240→10 MHz only adds touch latency
+  // (~50 ms) with negligible battery savings.  Keep full speed always.
+  (void)enabled;
+  return;
+#else
   if (normalFreq <= 0) {
     return;  // invalid state
   }
@@ -50,6 +59,7 @@ void HalPowerManager::setPowerSaving(bool enabled) {
   }
 
   // Otherwise, no change needed
+#endif
 }
 
 void HalPowerManager::startDeepSleep(HalGPIO& gpio) const {
@@ -59,20 +69,20 @@ void HalPowerManager::startDeepSleep(HalGPIO& gpio) const {
     gpio.update();
   }
 
-  // Put display to sleep before entering deep sleep
-  M5.Display.sleep();
-
-  // M5PaperS3 power off via PMIC (AXP2101)
+  // Power off via GPIO44 pulse to PMIC
   // This turns off the device completely; wakeup is via power button through PMIC
-  M5.Power.powerOff();
+  pinMode(PWROFF_PULSE_PIN, OUTPUT);
+  digitalWrite(PWROFF_PULSE_PIN, HIGH);
+  delay(100);
+  digitalWrite(PWROFF_PULSE_PIN, LOW);
 
   // If powerOff doesn't halt (e.g., USB connected), fall back to deep sleep
   esp_deep_sleep_start();
 }
 
 uint16_t HalPowerManager::getBatteryPercentage() const {
-  // Use M5Unified's power management for battery level
-  return M5.Power.getBatteryLevel();
+  // TODO: Implement direct ADC/PMIC battery reading for M5PaperS3
+  return 100;
 }
 
 HalPowerManager::Lock::Lock() {

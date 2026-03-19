@@ -10,7 +10,11 @@
 #include "fontIds.h"
 
 int XtcReaderChapterSelectionActivity::getPageItems() const {
+#if CROSSPOINT_PAPERS3
+  constexpr int lineHeight = 75;
+#else
   constexpr int lineHeight = 30;
+#endif
 
   const int screenHeight = renderer.getScreenHeight();
   const auto orientation = renderer.getOrientation();
@@ -121,13 +125,21 @@ void XtcReaderChapterSelectionActivity::render(RenderLock&&) {
     return;
   }
 
+#if CROSSPOINT_PAPERS3
+  constexpr int lineHeight = 75;
+#else
+  constexpr int lineHeight = 30;
+#endif
+  const int textLineH = renderer.getLineHeight(UI_10_FONT_ID);
+  const int textYOff = (lineHeight - textLineH) / 2;
+
   const auto pageStartIndex = selectorIndex / pageItems * pageItems;
   // Highlight only the content area, not the hint gutters.
-  renderer.fillRect(contentX, 60 + contentY + (selectorIndex % pageItems) * 30 - 2, contentWidth - 1, 30);
+  renderer.fillRect(contentX, 60 + contentY + (selectorIndex % pageItems) * lineHeight, contentWidth - 1, lineHeight);
   for (int i = pageStartIndex; i < static_cast<int>(chapters.size()) && i < pageStartIndex + pageItems; i++) {
     const auto& chapter = chapters[i];
     const char* title = chapter.name.empty() ? tr(STR_UNNAMED) : chapter.name.c_str();
-    renderer.drawText(UI_10_FONT_ID, contentX + 20, 60 + contentY + (i % pageItems) * 30, title, i != selectorIndex);
+    renderer.drawText(UI_10_FONT_ID, contentX + 20, 60 + contentY + (i % pageItems) * lineHeight + textYOff, title, i != selectorIndex);
   }
 
   // Skip button hints in landscape CW mode (they overlap content)

@@ -184,8 +184,39 @@ void HomeActivity::loop() {
     requestUpdate();
   });
 
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasContentAreaTapped()) {
+    // Tap-to-select: map touch Y to the tapped item directly
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int coverTop = metrics.homeTopPadding;
+    const int coverBottom = coverTop + metrics.homeCoverTileHeight;
+    const int menuTop = coverBottom + metrics.verticalSpacing;
+    const int itemHeight = metrics.menuRowHeight + metrics.menuSpacing;
+
+    if (!recentBooks.empty() && touchY >= coverTop && touchY < coverBottom) {
+      const int numCovers = std::min(static_cast<int>(recentBooks.size()), metrics.homeRecentBooksCount);
+      if (numCovers > 1) {
+        const int16_t touchX = mappedInput.getTouchX();
+        const int tileWidth = (renderer.getScreenWidth() - 2 * metrics.contentSidePadding) / numCovers;
+        int coverIdx = (touchX - metrics.contentSidePadding) / tileWidth;
+        if (coverIdx < 0) coverIdx = 0;
+        if (coverIdx >= numCovers) coverIdx = numCovers - 1;
+        selectorIndex = coverIdx;
+      } else {
+        selectorIndex = 0;
+      }
+    } else if (touchY >= menuTop) {
+      int menuIdx = (touchY - menuTop) / itemHeight;
+      int totalMenuItems = menuCount - static_cast<int>(recentBooks.size());
+      if (menuIdx >= 0 && menuIdx < totalMenuItems) {
+        selectorIndex = static_cast<int>(recentBooks.size()) + menuIdx;
+      }
+    }
+#else
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-    // Calculate dynamic indices based on which options are available
+#endif
+    // Execute action for current selectorIndex
     int idx = 0;
     int menuSelectedIndex = selectorIndex - static_cast<int>(recentBooks.size());
     const int fileBrowserIdx = idx++;

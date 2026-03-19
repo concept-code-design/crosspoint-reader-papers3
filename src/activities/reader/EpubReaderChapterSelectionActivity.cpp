@@ -11,7 +11,11 @@ int EpubReaderChapterSelectionActivity::getTotalItems() const { return epub->get
 
 int EpubReaderChapterSelectionActivity::getPageItems() const {
   // Layout constants used in renderScreen
+#if CROSSPOINT_PAPERS3
+  constexpr int lineHeight = 75;
+#else
   constexpr int lineHeight = 30;
+#endif
 
   const int screenHeight = renderer.getScreenHeight();
   const auto orientation = renderer.getOrientation();
@@ -47,7 +51,25 @@ void EpubReaderChapterSelectionActivity::loop() {
   const int pageItems = getPageItems();
   const int totalItems = getTotalItems();
 
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasContentAreaTapped()) {
+    // Tap-to-select: map touch Y to chapter list item
+    {
+      constexpr int lineHeight = 75;
+      const int16_t touchY = mappedInput.getTouchY();
+      const int startY = 60;
+      if (touchY >= startY) {
+        int page = selectorIndex / pageItems;
+        int tappedRow = (touchY - startY) / lineHeight;
+        int tappedIndex = page * pageItems + tappedRow;
+        if (tappedIndex >= 0 && tappedIndex < totalItems) {
+          selectorIndex = tappedIndex;
+        }
+      }
+    }
+#else
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+#endif
     const auto newSpineIndex = epub->getSpineIndexForTocIndex(selectorIndex);
     if (newSpineIndex == -1) {
       ActivityResult result;
@@ -110,14 +132,22 @@ void EpubReaderChapterSelectionActivity::render(RenderLock&&) {
       contentX + (contentWidth - renderer.getTextWidth(UI_12_FONT_ID, tr(STR_SELECT_CHAPTER), EpdFontFamily::BOLD)) / 2;
   renderer.drawText(UI_12_FONT_ID, titleX, 15 + contentY, tr(STR_SELECT_CHAPTER), true, EpdFontFamily::BOLD);
 
+#if CROSSPOINT_PAPERS3
+  constexpr int lineHeight = 75;
+#else
+  constexpr int lineHeight = 30;
+#endif
+  const int textLineH = renderer.getLineHeight(UI_10_FONT_ID);
+  const int textYOff = (lineHeight - textLineH) / 2;
+
   const auto pageStartIndex = selectorIndex / pageItems * pageItems;
   // Highlight only the content area, not the hint gutters.
-  renderer.fillRect(contentX, 60 + contentY + (selectorIndex % pageItems) * 30 - 2, contentWidth - 1, 30);
+  renderer.fillRect(contentX, 60 + contentY + (selectorIndex % pageItems) * lineHeight, contentWidth - 1, lineHeight);
 
   for (int i = 0; i < pageItems; i++) {
     int itemIndex = pageStartIndex + i;
     if (itemIndex >= totalItems) break;
-    const int displayY = 60 + contentY + i * 30;
+    const int displayY = 60 + contentY + i * lineHeight;
     const bool isSelected = (itemIndex == selectorIndex);
 
     auto item = epub->getTocItem(itemIndex);
@@ -127,7 +157,7 @@ void EpubReaderChapterSelectionActivity::render(RenderLock&&) {
     const std::string chapterName =
         renderer.truncatedText(UI_10_FONT_ID, item.title.c_str(), contentWidth - 40 - indentSize);
 
-    renderer.drawText(UI_10_FONT_ID, indentSize, displayY, chapterName.c_str(), !isSelected);
+    renderer.drawText(UI_10_FONT_ID, indentSize, displayY + textYOff, chapterName.c_str(), !isSelected);
   }
 
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_UP), tr(STR_DIR_DOWN));

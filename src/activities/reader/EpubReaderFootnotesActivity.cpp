@@ -63,9 +63,15 @@ void EpubReaderFootnotesActivity::render(RenderLock&&) {
   }
 
   constexpr int startY = 50;
+#if CROSSPOINT_PAPERS3
+  constexpr int lineHeight = 75;
+#else
   constexpr int lineHeight = 36;
+#endif
   const int screenWidth = renderer.getScreenWidth();
   constexpr int marginLeft = 20;
+  const int textLineH = renderer.getLineHeight(UI_10_FONT_ID);
+  const int textYOff = (lineHeight - textLineH) / 2;
 
   const int visibleCount = std::max(1, (renderer.getScreenHeight() - startY) / lineHeight);
   if (selectedIndex < scrollOffset) scrollOffset = selectedIndex;
@@ -84,7 +90,7 @@ void EpubReaderFootnotesActivity::render(RenderLock&&) {
     if (label.empty()) {
       label = tr(STR_LINK);
     }
-    renderer.drawText(UI_10_FONT_ID, marginLeft, y + 4, label.c_str(), !isSelected);
+    renderer.drawText(UI_10_FONT_ID, marginLeft, y + textYOff, label.c_str(), !isSelected);
   }
 
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), "", "");
