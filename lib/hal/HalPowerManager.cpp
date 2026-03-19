@@ -1,6 +1,7 @@
 #include "HalPowerManager.h"
 
 #include <Logging.h>
+#include <M5Unified.h>
 #include <WiFi.h>
 #include <esp_sleep.h>
 
@@ -11,7 +12,6 @@
 HalPowerManager powerManager;  // Singleton instance
 
 void HalPowerManager::begin() {
-  pinMode(BAT_GPIO0, INPUT);
   normalFreq = getCpuFrequencyMhz();
   modeMutex = xSemaphoreCreateMutex();
   assert(modeMutex != nullptr);
@@ -58,15 +58,21 @@ void HalPowerManager::startDeepSleep(HalGPIO& gpio) const {
     delay(50);
     gpio.update();
   }
-  // Arm the wakeup trigger *after* the button is released
-  esp_deep_sleep_enable_gpio_wakeup(1ULL << InputManager::POWER_BUTTON_PIN, ESP_GPIO_WAKEUP_GPIO_LOW);
-  // Enter Deep Sleep
+
+  // Put display to sleep before entering deep sleep
+  M5.Display.sleep();
+
+  // M5PaperS3 power off via PMIC (AXP2101)
+  // This turns off the device completely; wakeup is via power button through PMIC
+  M5.Power.powerOff();
+
+  // If powerOff doesn't halt (e.g., USB connected), fall back to deep sleep
   esp_deep_sleep_start();
 }
 
 uint16_t HalPowerManager::getBatteryPercentage() const {
-  static const BatteryMonitor battery = BatteryMonitor(BAT_GPIO0);
-  return battery.readPercentage();
+  // Use M5Unified's power management for battery level
+  return M5.Power.getBatteryLevel();
 }
 
 HalPowerManager::Lock::Lock() {

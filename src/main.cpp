@@ -10,6 +10,7 @@
 #include <HalSystem.h>
 #include <I18n.h>
 #include <Logging.h>
+#include <M5Unified.h>
 #include <SPI.h>
 #include <builtinFonts/all.h>
 
@@ -230,6 +231,10 @@ void setupDisplayAndFonts() {
 
 void setup() {
   t1 = millis();
+
+  // Initialize M5Unified first - sets up display, touch, power management, I2C
+  auto cfg = M5.config();
+  M5.begin(cfg);
 
   HalSystem::begin();
   gpio.begin();

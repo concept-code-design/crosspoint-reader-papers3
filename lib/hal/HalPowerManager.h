@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <InputManager.h>
 #include <Logging.h>
 #include <freertos/semphr.h>
 

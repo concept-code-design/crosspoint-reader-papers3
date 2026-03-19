@@ -1,10 +1,9 @@
 #pragma once
 #include <Arduino.h>
-#include <EInkDisplay.h>
 
 class HalDisplay {
  public:
-  // Constructor with pin configuration
+  // Constructor
   HalDisplay();
 
   // Destructor
@@ -20,9 +19,9 @@ class HalDisplay {
   // Initialize the display hardware and driver
   void begin();
 
-  // Display dimensions
-  static constexpr uint16_t DISPLAY_WIDTH = EInkDisplay::DISPLAY_WIDTH;
-  static constexpr uint16_t DISPLAY_HEIGHT = EInkDisplay::DISPLAY_HEIGHT;
+  // Display dimensions (M5PaperS3: 960x540 physical landscape)
+  static constexpr uint16_t DISPLAY_WIDTH = 960;
+  static constexpr uint16_t DISPLAY_HEIGHT = 540;
   static constexpr uint16_t DISPLAY_WIDTH_BYTES = DISPLAY_WIDTH / 8;
   static constexpr uint32_t BUFFER_SIZE = DISPLAY_WIDTH_BYTES * DISPLAY_HEIGHT;
 
@@ -50,5 +49,14 @@ class HalDisplay {
   void displayGrayBuffer(bool turnOffScreen = false);
 
  private:
-  EInkDisplay einkDisplay;
+  // 1-bit framebuffer allocated in PSRAM, compatible with GfxRenderer
+  uint8_t* frameBuffer;
+
+  // Grayscale bit plane buffers (allocated on demand for two-pass rendering)
+  uint8_t* grayLsbBuffer = nullptr;
+  uint8_t* grayMsbBuffer = nullptr;
+  void freeGrayscaleBuffers();
+
+  // Push our 1-bit framebuffer to the M5GFX EPD display
+  void pushFrameBufferToDisplay();
 };

@@ -22,14 +22,14 @@ class GfxRenderer {
 
   // Logical screen orientation from the perspective of callers
   enum Orientation {
-    Portrait,                  // 480x800 logical coordinates (current default)
-    LandscapeClockwise,        // 800x480 logical coordinates, rotated 180° (swap top/bottom)
-    PortraitInverted,          // 480x800 logical coordinates, inverted
-    LandscapeCounterClockwise  // 800x480 logical coordinates, native panel orientation
+    Portrait,                  // 540x960 logical coordinates (current default)
+    LandscapeClockwise,        // 960x540 logical coordinates, rotated 180° (swap top/bottom)
+    PortraitInverted,          // 540x960 logical coordinates, inverted
+    LandscapeCounterClockwise  // 960x540 logical coordinates, native panel orientation
   };
 
  private:
-  static constexpr size_t BW_BUFFER_CHUNK_SIZE = 8000;  // 8KB chunks to allow for non-contiguous memory
+  static constexpr size_t BW_BUFFER_CHUNK_SIZE = 8100;  // ~8KB chunks to allow for non-contiguous memory (must evenly divide BUFFER_SIZE)
   static constexpr size_t BW_BUFFER_NUM_CHUNKS = HalDisplay::BUFFER_SIZE / BW_BUFFER_CHUNK_SIZE;
   static_assert(BW_BUFFER_CHUNK_SIZE * BW_BUFFER_NUM_CHUNKS == HalDisplay::BUFFER_SIZE,
                 "BW buffer chunking does not line up with display buffer size");

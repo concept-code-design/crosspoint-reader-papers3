@@ -38,27 +38,27 @@ static inline void rotateCoordinates(const GfxRenderer::Orientation orientation,
                                      int* phyY) {
   switch (orientation) {
     case GfxRenderer::Portrait: {
-      // Logical portrait (480x800) → panel (800x480)
+      // Logical portrait (540x960) → panel (960x540)
       // Rotation: 90 degrees clockwise
       *phyX = y;
       *phyY = HalDisplay::DISPLAY_HEIGHT - 1 - x;
       break;
     }
     case GfxRenderer::LandscapeClockwise: {
-      // Logical landscape (800x480) rotated 180 degrees (swap top/bottom and left/right)
+      // Logical landscape (960x540) rotated 180 degrees (swap top/bottom and left/right)
       *phyX = HalDisplay::DISPLAY_WIDTH - 1 - x;
       *phyY = HalDisplay::DISPLAY_HEIGHT - 1 - y;
       break;
     }
     case GfxRenderer::PortraitInverted: {
-      // Logical portrait (480x800) → panel (800x480)
+      // Logical portrait (540x960) → panel (960x540)
       // Rotation: 90 degrees counter-clockwise
       *phyX = HalDisplay::DISPLAY_WIDTH - 1 - y;
       *phyY = x;
       break;
     }
     case GfxRenderer::LandscapeCounterClockwise: {
-      // Logical landscape (800x480) aligned with panel orientation
+      // Logical landscape (960x540) aligned with panel orientation
       *phyX = x;
       *phyY = y;
       break;
@@ -922,11 +922,11 @@ int GfxRenderer::getScreenWidth() const {
   switch (orientation) {
     case Portrait:
     case PortraitInverted:
-      // 480px wide in portrait logical coordinates
+      // 540px wide in portrait logical coordinates
       return HalDisplay::DISPLAY_HEIGHT;
     case LandscapeClockwise:
     case LandscapeCounterClockwise:
-      // 800px wide in landscape logical coordinates
+      // 960px wide in landscape logical coordinates
       return HalDisplay::DISPLAY_WIDTH;
   }
   return HalDisplay::DISPLAY_HEIGHT;
@@ -936,11 +936,11 @@ int GfxRenderer::getScreenHeight() const {
   switch (orientation) {
     case Portrait:
     case PortraitInverted:
-      // 800px tall in portrait logical coordinates
+      // 960px tall in portrait logical coordinates
       return HalDisplay::DISPLAY_WIDTH;
     case LandscapeClockwise:
     case LandscapeCounterClockwise:
-      // 480px tall in landscape logical coordinates
+      // 540px tall in landscape logical coordinates
       return HalDisplay::DISPLAY_HEIGHT;
   }
   return HalDisplay::DISPLAY_WIDTH;

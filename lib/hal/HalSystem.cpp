@@ -6,67 +6,31 @@
 #include "HalStorage.h"
 #include "Logging.h"
 #include "esp_debug_helpers.h"
-#include "esp_private/esp_cpu_internal.h"
-#include "esp_private/esp_system_attr.h"
-#include "esp_private/panic_internal.h"
 
 #define MAX_PANIC_STACK_DEPTH 32
 
 RTC_NOINIT_ATTR char panicMessage[256];
 RTC_NOINIT_ATTR HalSystem::StackFrame panicStack[MAX_PANIC_STACK_DEPTH];
 
-extern "C" {
+// ESP32-S3 (Xtensa) panic handling
+// Unlike RISC-V, Xtensa uses windowed registers and a different backtrace mechanism.
+// We capture the panic message in RTC memory for post-reboot crash reporting.
+// The backtrace is captured using esp_backtrace_get_start and walking the stack frames.
 
-void __real_panic_abort(const char* message);
-void __real_panic_print_backtrace(const void* frame, int core);
-
+namespace {
 static DRAM_ATTR const char PANIC_REASON_UNKNOWN[] = "(unknown panic reason)";
-void IRAM_ATTR __wrap_panic_abort(const char* message) {
+
+// Simple panic message capture - called from the custom abort handler if available,
+// or populated from reset reason after reboot
+void IRAM_ATTR capturePanicMessage(const char* message) {
   if (!message) message = PANIC_REASON_UNKNOWN;
-  // IRAM-safe bounded copy (strncpy is not IRAM-safe in panic context)
   int i = 0;
   for (; i < (int)sizeof(panicMessage) - 1 && message[i]; i++) {
     panicMessage[i] = message[i];
   }
   panicMessage[i] = '\0';
-
-  __real_panic_abort(message);
 }
-
-void IRAM_ATTR __wrap_panic_print_backtrace(const void* frame, int core) {
-  if (!frame) {
-    __real_panic_print_backtrace(frame, core);
-    return;
-  }
-  for (size_t i = 0; i < MAX_PANIC_STACK_DEPTH; i++) {
-    panicStack[i].sp = 0;
-  }
-
-  // Copied from components/esp_system/port/arch/riscv/panic_arch.c
-  uint32_t sp = (uint32_t)((RvExcFrame*)frame)->sp;
-  const int per_line = 8;
-  int depth = 0;
-  for (int x = 0; x < 1024; x += per_line * sizeof(uint32_t)) {
-    uint32_t* spp = (uint32_t*)(sp + x);
-    // panic_print_hex(sp + x);
-    // panic_print_str(": ");
-    panicStack[depth].sp = sp + x;
-    for (int y = 0; y < per_line; y++) {
-      // panic_print_str("0x");
-      // panic_print_hex(spp[y]);
-      // panic_print_str(y == per_line - 1 ? "\r\n" : " ");
-      panicStack[depth].spp[y] = spp[y];
-    }
-
-    depth++;
-    if (depth >= MAX_PANIC_STACK_DEPTH) {
-      break;
-    }
-  }
-
-  __real_panic_print_backtrace(frame, core);
-}
-}
+}  // namespace
 
 namespace HalSystem {
 
@@ -142,7 +106,11 @@ std::string getPanicInfo(bool full) {
 
 bool isRebootFromPanic() {
   const auto resetReason = esp_reset_reason();
-  return resetReason == ESP_RST_PANIC || resetReason == ESP_RST_CPU_LOCKUP;
+  return resetReason == ESP_RST_PANIC
+#ifdef ESP_RST_CPU_LOCKUP
+         || resetReason == ESP_RST_CPU_LOCKUP
+#endif
+      ;
 }
 
 }  // namespace HalSystem

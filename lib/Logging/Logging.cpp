@@ -112,3 +112,24 @@ void clearLastLogs() {
   logHead = 0;
   rtcLogMagic = LOG_RTC_MAGIC;
 }
+
+// MySerialImpl: wraps real Serial to intercept raw printf calls with a deprecation warning
+MySerialImpl MySerialImpl::instance;
+
+size_t MySerialImpl::printf(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  char buf[256];
+  int len = vsnprintf(buf, sizeof(buf), format, args);
+  va_end(args);
+  if (len > 0 && logSerial) {
+    logSerial.print(buf);
+  }
+  return len > 0 ? len : 0;
+}
+
+size_t MySerialImpl::write(uint8_t b) { return logSerial.write(b); }
+
+size_t MySerialImpl::write(const uint8_t* buffer, size_t size) { return logSerial.write(buffer, size); }
+
+void MySerialImpl::flush() { logSerial.flush(); }
