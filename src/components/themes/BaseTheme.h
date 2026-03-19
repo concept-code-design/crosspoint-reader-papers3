@@ -89,8 +89,13 @@ constexpr ThemeMetrics values = {.batteryWidth = 15,
                                  .homeCoverHeight = 400,
                                  .homeCoverTileHeight = 400,
                                  .homeRecentBooksCount = 1,
+#if CROSSPOINT_PAPERS3
+                                 .buttonHintsHeight = 0,
+                                 .sideButtonHintsWidth = 0,
+#else
                                  .buttonHintsHeight = 40,
                                  .sideButtonHintsWidth = 30,
+#endif
                                  .progressBarHeight = 16,
                                  .progressBarMarginTop = 1,
                                  .statusBarHorizontalMargin = 5,

@@ -24,6 +24,10 @@ void HalDisplay::begin() {
   // GfxRenderer handles logical portrait→physical landscape rotation internally
   M5.Display.setRotation(1);
 
+  // Disable auto-display so pushSprite() only writes to the EPD buffer.
+  // We trigger the single EPD refresh explicitly via M5.Display.display().
+  M5.Display.setAutoDisplay(false);
+
   // Allocate 1-bit framebuffer in PSRAM (64800 bytes for 960x540)
   frameBuffer = static_cast<uint8_t*>(heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
   if (!frameBuffer) {

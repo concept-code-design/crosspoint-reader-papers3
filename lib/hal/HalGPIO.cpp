@@ -1,22 +1,19 @@
 #include <HalGPIO.h>
 #include <HalM5Mutex.h>
+#include <Logging.h>
 #include <M5Unified.h>
 #include <SPI.h>
 
-// Touch zone boundaries in LOGICAL portrait coordinates (540 wide x 960 tall)
+// Touch zones in LOGICAL portrait coordinates (540 wide x 960 tall).
 // The physical display is 960x540 landscape; GfxRenderer rotates to portrait.
-// Physical touch (phyX, phyY) → logical portrait: logX = 539 - phyY, logY = phyX
-static constexpr int16_t LOGICAL_WIDTH = 540;
-static constexpr int16_t LOGICAL_HEIGHT = 960;
+// Coordinate transform from touch space to portrait is auto-detected at runtime.
+static constexpr int16_t PORT_W = 540;
+static constexpr int16_t PORT_H = 960;
 
-// Bottom navigation bar
-static constexpr int16_t NAV_BAR_TOP = 860;
-static constexpr int16_t NAV_ZONE_WIDTH = LOGICAL_WIDTH / 4;  // 135px per button
-
-// Main reading area (between header and nav bar)
-static constexpr int16_t READING_TOP = 60;
-static constexpr int16_t READING_BOTTOM = NAV_BAR_TOP;
-static constexpr int16_t READING_MID_X = LOGICAL_WIDTH / 2;  // 270
+// Zone boundaries (portrait logical coordinates)
+static constexpr int16_t TOP_ZONE_H   = 70;   // Back zone at top
+static constexpr int16_t BOT_ZONE_TOP = 890;   // Bottom strip for Left/Right/Back
+static constexpr int16_t EDGE_STRIP_W = 108;   // 20% width for Up/Down edge strips
 
 void HalGPIO::begin() {
   // Initialize SD card SPI bus with PaperS3 pins
@@ -25,32 +22,43 @@ void HalGPIO::begin() {
 }
 
 int HalGPIO::touchZoneToButton(int16_t touchX, int16_t touchY) const {
-  // Transform physical touch coordinates (960x540 landscape) to logical portrait (540x960)
-  // Physical panel: origin top-left in landscape, X goes right (0-960), Y goes down (0-540)
-  // Portrait rotation (90° CW): logicalX = 539 - physicalY, logicalY = physicalX
-  int16_t logX = 539 - touchY;
-  int16_t logY = touchX;
-
-  // Bottom navigation bar: 4 button zones
-  if (logY >= NAV_BAR_TOP) {
-    if (logX < NAV_ZONE_WIDTH) return BTN_BACK;
-    if (logX < NAV_ZONE_WIDTH * 2) return BTN_LEFT;
-    if (logX < NAV_ZONE_WIDTH * 3) return BTN_RIGHT;
-    return BTN_CONFIRM;
+  // Auto-detect coordinate space from current display rotation.
+  // If display reports landscape (width > height), touch is in native 960x540 space
+  // and we must rotate to portrait.  Otherwise touch is already portrait.
+  int16_t logX, logY;
+  if (M5.Display.width() > M5.Display.height()) {
+    // Native landscape touch → portrait: logX = maxY - touchY, logY = touchX
+    logX = (M5.Display.height() - 1) - touchY;
+    logY = touchX;
+  } else {
+    // Already portrait coordinates
+    logX = touchX;
+    logY = touchY;
   }
 
-  // Main reading area: left half = page back, right half = page forward
-  if (logY >= READING_TOP && logY < READING_BOTTOM) {
-    if (logX < READING_MID_X) return BTN_UP;    // Page back
-    return BTN_DOWN;                              // Page forward
+  // Clamp to portrait bounds
+  if (logX < 0 || logX >= PORT_W || logY < 0 || logY >= PORT_H) return -1;
+
+  // --- Top zone: BACK ---
+  if (logY < TOP_ZONE_H) {
+    return BTN_BACK;
   }
 
-  // Top area: treat as confirm (open menus, etc.)
-  if (logY < READING_TOP) {
-    return BTN_CONFIRM;
+  // --- Bottom strip: BACK / LEFT / RIGHT ---
+  if (logY >= BOT_ZONE_TOP) {
+    int16_t third = PORT_W / 3;  // 180
+    if (logX < third) return BTN_BACK;
+    if (logX < third * 2) return BTN_LEFT;
+    return BTN_RIGHT;
   }
 
-  return -1;
+  // --- Content area (between top and bottom zones) ---
+  // Left edge strip (20%): UP / Page Back
+  if (logX < EDGE_STRIP_W) return BTN_UP;
+  // Right edge strip (20%): DOWN / Page Forward
+  if (logX >= PORT_W - EDGE_STRIP_W) return BTN_DOWN;
+  // Center (60%): CONFIRM / Select
+  return BTN_CONFIRM;
 }
 
 void HalGPIO::update() {
@@ -74,6 +82,8 @@ void HalGPIO::update() {
     auto detail = M5.Touch.getDetail(0);
     if (detail.isPressed()) {
       int btn = touchZoneToButton(detail.x, detail.y);
+      LOG_DBG("TOUCH", "raw=(%d,%d) btn=%d disp=(%d,%d)", detail.x, detail.y, btn,
+              M5.Display.width(), M5.Display.height());
       if (btn >= 0 && btn < HALGPIO_NUM_BUTTONS) {
         currentState |= (1 << btn);
       }
