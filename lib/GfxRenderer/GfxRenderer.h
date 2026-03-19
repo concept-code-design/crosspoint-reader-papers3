@@ -53,12 +53,17 @@ class GfxRenderer {
  public:
   explicit GfxRenderer(HalDisplay& halDisplay)
       : display(halDisplay), renderMode(BW), orientation(Portrait), fadingFix(false) {}
-  ~GfxRenderer() { if (bwBufferStored) { free(bwBufferStored); bwBufferStored = nullptr; } }
+  ~GfxRenderer() {
+    if (bwBufferStored) {
+      free(bwBufferStored);
+      bwBufferStored = nullptr;
+    }
+  }
 
 #if CROSSPOINT_PAPERS3
   static constexpr int VIEWABLE_MARGIN_TOP = 9;
   static constexpr int VIEWABLE_MARGIN_RIGHT = 3;
-  static constexpr int VIEWABLE_MARGIN_BOTTOM = 16;
+  static constexpr int VIEWABLE_MARGIN_BOTTOM = 18;
   static constexpr int VIEWABLE_MARGIN_LEFT = 3;
 #else
   static constexpr int VIEWABLE_MARGIN_TOP = 9;

@@ -48,7 +48,7 @@ constexpr ThemeMetrics values = {.batteryWidth = 16,
                                  .keyboardKeySpacing = 0,
                                  .keyboardBottomAligned = true,
                                  .keyboardCenteredText = true};
-}
+}  // namespace LyraMetrics
 
 class LyraTheme : public BaseTheme {
  public:

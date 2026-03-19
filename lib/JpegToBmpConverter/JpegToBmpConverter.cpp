@@ -604,7 +604,7 @@ int thumbDrawCallback(JPEGDRAW* pDraw) {
 }  // namespace
 
 bool JpegToBmpConverter::jpegMemTo1BitBmp(const uint8_t* jpegData, size_t jpegSize, Print& bmpOut, int targetWidth,
-                                           int targetHeight) {
+                                          int targetHeight) {
   LOG_DBG("JPG", "JPEGDEC fast path: target %dx%d", targetWidth, targetHeight);
 
   // Heap-allocate JPEGDEC in PSRAM — the object is ~16KB (file buffer, Huffman
@@ -648,10 +648,11 @@ bool JpegToBmpConverter::jpegMemTo1BitBmp(const uint8_t* jpegData, size_t jpegSi
     scaledH = (origH + 1) / 2;
   }
 
-  LOG_DBG("JPG", "JPEGDEC: %dx%d scale=1/%d -> %dx%d", origW, origH, scale == JPEG_SCALE_EIGHTH    ? 8
-                                                                       : scale == JPEG_SCALE_QUARTER ? 4
-                                                                       : scale == JPEG_SCALE_HALF    ? 2
-                                                                                                     : 1,
+  LOG_DBG("JPG", "JPEGDEC: %dx%d scale=1/%d -> %dx%d", origW, origH,
+          scale == JPEG_SCALE_EIGHTH    ? 8
+          : scale == JPEG_SCALE_QUARTER ? 4
+          : scale == JPEG_SCALE_HALF    ? 2
+                                        : 1,
           scaledW, scaledH);
 
   // Allocate grayscale decode buffer in PSRAM

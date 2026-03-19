@@ -558,6 +558,10 @@ void EpubReaderActivity::render(RenderLock&& lock) {
         section.reset();
         return;
       }
+#if CROSSPOINT_PAPERS3
+      // Force full refresh after indexing popup to clear its ghost
+      renderer.requestFullRefresh();
+#endif
     } else {
       LOG_DBG("ERS", "Cache found, skipping build...");
     }
@@ -716,8 +720,8 @@ void EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int or
   const auto tDisplay = millis();
 
   const auto tEnd = millis();
-  LOG_DBG("ERS", "Page render: prewarm=%lums render=%lums display=%lums total=%lums",
-          tPrewarm - t0, tBwRender - tPrewarm, tDisplay - tBwRender, tEnd - t0);
+  LOG_DBG("ERS", "Page render: prewarm=%lums render=%lums display=%lums total=%lums", tPrewarm - t0,
+          tBwRender - tPrewarm, tDisplay - tBwRender, tEnd - t0);
 }
 
 void EpubReaderActivity::renderStatusBar() const {

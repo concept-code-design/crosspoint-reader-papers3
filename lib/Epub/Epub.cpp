@@ -639,8 +639,8 @@ bool Epub::generateThumbBmp(int height) const {
       if (jpegData) {
         FsFile thumbBmp;
         if (Storage.openFileForWrite("EBP", getThumbBmpPath(height), thumbBmp)) {
-          const bool success =
-              JpegToBmpConverter::jpegMemTo1BitBmp(jpegData, jpegSize, thumbBmp, THUMB_TARGET_WIDTH, THUMB_TARGET_HEIGHT);
+          const bool success = JpegToBmpConverter::jpegMemTo1BitBmp(jpegData, jpegSize, thumbBmp, THUMB_TARGET_WIDTH,
+                                                                    THUMB_TARGET_HEIGHT);
           free(jpegData);
           thumbBmp.close();
           if (success) {

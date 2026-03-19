@@ -105,6 +105,11 @@ void HomeActivity::loadRecentCovers(int coverHeight) {
 
   recentsLoaded = true;
   recentsLoading = false;
+#if CROSSPOINT_PAPERS3
+  if (showingLoading) {
+    renderer.requestFullRefresh();
+  }
+#endif
 }
 
 void HomeActivity::onEnter() {

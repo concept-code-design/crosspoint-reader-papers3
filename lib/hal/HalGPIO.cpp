@@ -9,9 +9,9 @@ static constexpr int16_t PORT_W = 540;
 static constexpr int16_t PORT_H = 960;
 
 // Zone boundaries (portrait logical coordinates)
-static constexpr int16_t TOP_ZONE_H   = 70;   // Back zone at top
-static constexpr int16_t BOT_ZONE_TOP = 890;   // Bottom strip for Left/Right/Back
-static constexpr int16_t EDGE_STRIP_W = 108;   // 20% width for Up/Down edge strips
+static constexpr int16_t TOP_ZONE_H = 70;     // Back zone at top
+static constexpr int16_t BOT_ZONE_TOP = 890;  // Bottom strip for Left/Right/Back
+static constexpr int16_t EDGE_STRIP_W = 108;  // 20% width for Up/Down edge strips
 
 void HalGPIO::begin() {
   // Initialize SD card SPI bus with PaperS3 pins
@@ -106,9 +106,7 @@ bool HalGPIO::wasPressed(uint8_t buttonIndex) const {
   return (currentState & (1 << buttonIndex)) && !(previousState & (1 << buttonIndex));
 }
 
-bool HalGPIO::wasAnyPressed() const {
-  return (currentState & ~previousState) != 0;
-}
+bool HalGPIO::wasAnyPressed() const { return (currentState & ~previousState) != 0; }
 
 bool HalGPIO::wasReleased(uint8_t buttonIndex) const {
   if (buttonIndex >= HALGPIO_NUM_BUTTONS) return false;
@@ -116,9 +114,7 @@ bool HalGPIO::wasReleased(uint8_t buttonIndex) const {
   return !(currentState & (1 << buttonIndex)) && (previousState & (1 << buttonIndex));
 }
 
-bool HalGPIO::wasAnyReleased() const {
-  return (previousState & ~currentState) != 0;
-}
+bool HalGPIO::wasAnyReleased() const { return (previousState & ~currentState) != 0; }
 
 unsigned long HalGPIO::getHeldTime() const {
   if (currentState == 0) return 0;

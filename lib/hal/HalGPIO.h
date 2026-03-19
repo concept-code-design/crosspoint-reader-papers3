@@ -39,8 +39,8 @@ class HalGPIO {
   static constexpr uint8_t BTN_CONFIRM = 1;
   static constexpr uint8_t BTN_LEFT = 2;
   static constexpr uint8_t BTN_RIGHT = 3;
-  static constexpr uint8_t BTN_UP = 4;     // Page back (left half of screen)
-  static constexpr uint8_t BTN_DOWN = 5;   // Page forward (right half of screen)
+  static constexpr uint8_t BTN_UP = 4;    // Page back (left half of screen)
+  static constexpr uint8_t BTN_DOWN = 5;  // Page forward (right half of screen)
   static constexpr uint8_t BTN_POWER = 6;
 
  private:

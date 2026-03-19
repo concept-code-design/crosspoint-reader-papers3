@@ -16,6 +16,8 @@ void BootActivity::onEnter() {
   renderer.drawImage(Logo120, (pageWidth - 120) / 2, (pageHeight - 120) / 2, 120, 120);
   renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 70, tr(STR_CROSSPOINT), true, EpdFontFamily::BOLD);
   renderer.drawCenteredText(SMALL_FONT_ID, pageHeight / 2 + 95, tr(STR_BOOTING));
-  renderer.drawCenteredText(SMALL_FONT_ID, pageHeight - GfxRenderer::VIEWABLE_MARGIN_BOTTOM - renderer.getLineHeight(SMALL_FONT_ID) - 2, CROSSPOINT_VERSION);
+  renderer.drawCenteredText(SMALL_FONT_ID,
+                            pageHeight - GfxRenderer::VIEWABLE_MARGIN_BOTTOM - renderer.getLineHeight(SMALL_FONT_ID),
+                            CROSSPOINT_VERSION);
   renderer.displayBuffer();
 }

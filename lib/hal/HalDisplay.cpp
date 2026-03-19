@@ -1,6 +1,6 @@
-#include <HalDisplay.h>
 #include <EPD_Painter.h>
 #include <EPD_Painter_presets.h>
+#include <HalDisplay.h>
 
 #include <cstring>
 
@@ -20,8 +20,14 @@ HalDisplay::~HalDisplay() {
 }
 
 void HalDisplay::freeGrayscaleBuffers() {
-  if (grayLsbBuffer) { heap_caps_free(grayLsbBuffer); grayLsbBuffer = nullptr; }
-  if (grayMsbBuffer) { heap_caps_free(grayMsbBuffer); grayMsbBuffer = nullptr; }
+  if (grayLsbBuffer) {
+    heap_caps_free(grayLsbBuffer);
+    grayLsbBuffer = nullptr;
+  }
+  if (grayMsbBuffer) {
+    heap_caps_free(grayMsbBuffer);
+    grayMsbBuffer = nullptr;
+  }
 }
 
 void HalDisplay::begin() {
@@ -52,10 +58,9 @@ void HalDisplay::begin() {
     epd->paint(frameBuffer);  // frameBuffer is all-zero (white) from memset above
   }
 
-  if (Serial) Serial.printf("[%lu] HalDisplay: begin() - framebuffer %s, EPD_Painter %s\n",
-                            millis(),
-                            frameBuffer ? "OK" : "FAIL",
-                            ok ? "OK" : "FAIL");
+  if (Serial)
+    Serial.printf("[%lu] HalDisplay: begin() - framebuffer %s, EPD_Painter %s\n", millis(), frameBuffer ? "OK" : "FAIL",
+                  ok ? "OK" : "FAIL");
 }
 
 void HalDisplay::clearScreen(uint8_t color) const {
@@ -122,7 +127,6 @@ void HalDisplay::drawImageTransparent(const uint8_t* imageData, uint16_t x, uint
     }
   }
 }
-
 
 void HalDisplay::displayBuffer(RefreshMode mode, bool turnOffScreen) {
   if (!epd || !frameBuffer) return;

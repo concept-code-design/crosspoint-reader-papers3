@@ -105,7 +105,7 @@ constexpr ThemeMetrics values = {.batteryWidth = 15,
                                  .keyboardKeySpacing = 10,
                                  .keyboardBottomAligned = false,
                                  .keyboardCenteredText = false};
-}
+}  // namespace BaseMetrics
 
 class BaseTheme {
  public:

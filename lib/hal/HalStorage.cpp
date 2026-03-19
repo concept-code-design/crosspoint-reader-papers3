@@ -63,7 +63,10 @@ std::vector<String> HalStorage::listFiles(const char* path, int maxFiles) {
   int count = 0;
   char name[128];
   for (auto f = root.openNextFile(); f && count < maxFiles; f = root.openNextFile()) {
-    if (f.isDirectory()) { f.close(); continue; }
+    if (f.isDirectory()) {
+      f.close();
+      continue;
+    }
     f.getName(name, sizeof(name));
     ret.emplace_back(name);
     f.close();
@@ -104,8 +107,10 @@ bool HalStorage::readFileToStream(const char* path, Print& out, size_t chunkSize
 
   while (f.available()) {
     const int r = f.read(buf, toRead);
-    if (r > 0) out.write(buf, static_cast<size_t>(r));
-    else break;
+    if (r > 0)
+      out.write(buf, static_cast<size_t>(r));
+    else
+      break;
   }
   f.close();
   return true;
@@ -114,10 +119,16 @@ bool HalStorage::readFileToStream(const char* path, Print& out, size_t chunkSize
 size_t HalStorage::readFileToBuffer(const char* path, char* buffer, size_t bufferSize, size_t maxBytes) {
   StorageLock lock;
   if (!buffer || bufferSize == 0) return 0;
-  if (!initialized) { buffer[0] = '\0'; return 0; }
+  if (!initialized) {
+    buffer[0] = '\0';
+    return 0;
+  }
 
   FsFile f = sd.open(path, O_RDONLY);
-  if (!f) { buffer[0] = '\0'; return 0; }
+  if (!f) {
+    buffer[0] = '\0';
+    return 0;
+  }
 
   const size_t maxToRead = (maxBytes == 0) ? (bufferSize - 1) : min(maxBytes, bufferSize - 1);
   size_t total = 0;
@@ -127,8 +138,10 @@ size_t HalStorage::readFileToBuffer(const char* path, char* buffer, size_t buffe
     const size_t want = maxToRead - total;
     const size_t readLen = (want < chunk) ? want : chunk;
     const int r = f.read(buffer + total, readLen);
-    if (r > 0) total += static_cast<size_t>(r);
-    else break;
+    if (r > 0)
+      total += static_cast<size_t>(r);
+    else
+      break;
   }
   buffer[total] = '\0';
   f.close();
@@ -155,7 +168,10 @@ bool HalStorage::ensureDirectoryExists(const char* path) {
 
   if (sd.exists(path)) {
     FsFile dir = sd.open(path);
-    if (dir && dir.isDirectory()) { dir.close(); return true; }
+    if (dir && dir.isDirectory()) {
+      dir.close();
+      return true;
+    }
     dir.close();
   }
   return sd.mkdir(path);
