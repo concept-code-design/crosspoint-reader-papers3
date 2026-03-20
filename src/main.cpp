@@ -266,9 +266,15 @@ void setup() {
 
   switch (gpio.getWakeupReason()) {
     case HalGPIO::WakeupReason::PowerButton:
+#if CROSSPOINT_PAPERS3
+      // Paper S3: power button is handled by the PMIC, not a GPIO.
+      // BTN_POWER is never set in the touch-only HalGPIO, so skip verification.
+      LOG_DBG("MAIN", "Wakeup reason: Power button (PMIC)");
+#else
       // For normal wakeups, verify power button press duration
       LOG_DBG("MAIN", "Verifying power button press duration");
       verifyPowerButtonDuration();
+#endif
       break;
     case HalGPIO::WakeupReason::AfterUSBPower:
       // If USB power caused a cold boot, go back to sleep
@@ -306,8 +312,11 @@ void setup() {
     activityManager.goToReader(path);
   }
 
+#if !CROSSPOINT_PAPERS3
   // Ensure we're not still holding the power button before leaving setup
+  // (Paper S3 has no detectable power button GPIO, so skip this)
   waitForPowerRelease();
+#endif
 }
 
 void loop() {
@@ -370,6 +379,8 @@ void loop() {
     return;
   }
 
+#if !CROSSPOINT_PAPERS3
+  // Paper S3 has no detectable power button GPIO; sleep is only via auto-sleep timeout
   if (gpio.isPressed(HalGPIO::BTN_POWER) && gpio.getHeldTime() > SETTINGS.getPowerButtonDuration()) {
     // If the screenshot combination is potentially being pressed, don't sleep
     if (gpio.isPressed(HalGPIO::BTN_DOWN)) {
@@ -379,6 +390,7 @@ void loop() {
     // This should never be hit as `enterDeepSleep` calls esp_deep_sleep_start
     return;
   }
+#endif
 
   const unsigned long activityStartTime = millis();
   activityManager.loop();

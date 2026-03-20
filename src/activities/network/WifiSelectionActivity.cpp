@@ -470,14 +470,12 @@ void WifiSelectionActivity::loop() {
 
     // Up/Down move one row at a time
     if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-      selectedNetworkIndex = ButtonNavigator::previousIndex(
-          selectedNetworkIndex, networks.size());
+      selectedNetworkIndex = ButtonNavigator::previousIndex(selectedNetworkIndex, networks.size());
       requestUpdate();
       return;
     }
     if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-      selectedNetworkIndex = ButtonNavigator::nextIndex(
-          selectedNetworkIndex, networks.size());
+      selectedNetworkIndex = ButtonNavigator::nextIndex(selectedNetworkIndex, networks.size());
       requestUpdate();
       return;
     }
