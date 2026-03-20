@@ -355,13 +355,31 @@ void LyraTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
 
 void LyraTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const char* btn2, const char* btn3,
                                 const char* btn4) const {
-#if CROSSPOINT_PAPERS3
-  return;
-#endif
   const GfxRenderer::Orientation orig_orientation = renderer.getOrientation();
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
   const int pageHeight = renderer.getScreenHeight();
+#if CROSSPOINT_PAPERS3
+  // Paper S3: 4 tappable buttons across 540px, matching footer touch zones in HalGPIO
+  constexpr int buttonWidth = 120;
+  constexpr int buttonHeight = LyraMetrics::values.buttonHintsHeight;
+  constexpr int buttonY = LyraMetrics::values.buttonHintsHeight;
+  constexpr int buttonPositions[] = {12, 144, 276, 408};
+  const char* labels[] = {btn1, btn2, btn3, btn4};
+
+  for (int i = 0; i < 4; i++) {
+    if (labels[i] != nullptr && labels[i][0] != '\0') {
+      const int x = buttonPositions[i];
+      renderer.fillRoundedRect(x, pageHeight - buttonY, buttonWidth, buttonHeight, cornerRadius, Color::White);
+      renderer.drawRoundedRect(x, pageHeight - buttonY, buttonWidth, buttonHeight, 1, cornerRadius, true, true, false,
+                               false, true);
+      const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, labels[i]);
+      const int textX = x + (buttonWidth - textWidth) / 2;
+      const int textY = pageHeight - buttonY + (buttonHeight - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
+      renderer.drawText(UI_10_FONT_ID, textX, textY, labels[i]);
+    }
+  }
+#else
   constexpr int buttonWidth = 80;
   constexpr int smallButtonHeight = 15;
   constexpr int buttonHeight = LyraMetrics::values.buttonHintsHeight;
@@ -388,6 +406,7 @@ void LyraTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const c
                                true, false, false, true);
     }
   }
+#endif
 
   renderer.setOrientation(orig_orientation);
 }

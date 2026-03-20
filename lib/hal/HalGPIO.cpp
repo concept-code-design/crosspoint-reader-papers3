@@ -25,7 +25,17 @@ int HalGPIO::touchZoneToButton(int16_t touchX, int16_t touchY) const {
   // GT911 on M5PaperS3 reports portrait coordinates directly: x[0-539], y[0-959].
   if (touchX < 0 || touchX >= PORT_W || touchY < 0 || touchY >= PORT_H) return -1;
 
-  // Simple 3-zone vertical split across the entire screen
+  // Footer nav bar: bottom footerHeight pixels are split into 4 equal tap zones
+  // mapping to Back / Confirm / Up / Down (matches drawButtonHints layout)
+  if (footerHeight > 0 && touchY >= PORT_H - footerHeight) {
+    const int16_t quarter = PORT_W / 4;
+    if (touchX < quarter) return BTN_BACK;
+    if (touchX < quarter * 2) return BTN_CONFIRM;
+    if (touchX < quarter * 3) return BTN_UP;
+    return BTN_DOWN;
+  }
+
+  // Simple 3-zone vertical split across the content area
   if (touchX < ZONE_LEFT_END) return BTN_LEFT;
   if (touchX >= ZONE_RIGHT_START) return BTN_RIGHT;
   return BTN_CONFIRM;

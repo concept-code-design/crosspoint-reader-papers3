@@ -42,7 +42,7 @@ constexpr ThemeMetrics values = {.batteryWidth = 16,
 #endif
                                  .homeRecentBooksCount = 1,
 #if CROSSPOINT_PAPERS3
-                                 .buttonHintsHeight = 0,
+                                 .buttonHintsHeight = 80,
                                  .sideButtonHintsWidth = 0,
 #else
                                  .buttonHintsHeight = 40,

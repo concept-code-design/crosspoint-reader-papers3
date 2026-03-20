@@ -21,6 +21,9 @@ class MappedInputManager {
   // Raw touch coordinate access for tap-to-select navigation
   int16_t getTouchX() const { return gpio.getLastTouchX(); }
   int16_t getTouchY() const { return gpio.getLastTouchY(); }
+  // Footer nav bar height — forwarded to HalGPIO for touch zone mapping.
+  void setFooterHeight(int16_t height) { gpio.setFooterHeight(height); }
+
   // Returns true if any single-finger tap was released, regardless of zone.
   // Excludes 2-finger back and swipe gestures.
   // Use this for all non-reader activities where a tap anywhere should select an item.

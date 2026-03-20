@@ -104,14 +104,30 @@ void BaseTheme::drawProgressBar(const GfxRenderer& renderer, Rect rect, const si
 
 void BaseTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const char* btn2, const char* btn3,
                                 const char* btn4) const {
-#if CROSSPOINT_PAPERS3
-  // No button hints on touch-enabled PaperS3
-  return;
-#endif
   const GfxRenderer::Orientation orig_orientation = renderer.getOrientation();
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
   const int pageHeight = renderer.getScreenHeight();
+#if CROSSPOINT_PAPERS3
+  // Paper S3: 4 tappable buttons across 540px, matching footer touch zones in HalGPIO
+  constexpr int buttonWidth = 120;
+  constexpr int buttonHeight = BaseMetrics::values.buttonHintsHeight;
+  constexpr int buttonY = BaseMetrics::values.buttonHintsHeight;
+  constexpr int buttonPositions[] = {12, 144, 276, 408};
+  const char* labels[] = {btn1, btn2, btn3, btn4};
+
+  for (int i = 0; i < 4; i++) {
+    if (labels[i] != nullptr && labels[i][0] != '\0') {
+      const int x = buttonPositions[i];
+      renderer.fillRect(x, pageHeight - buttonY, buttonWidth, buttonHeight, false);
+      renderer.drawRect(x, pageHeight - buttonY, buttonWidth, buttonHeight);
+      const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, labels[i]);
+      const int textX = x + (buttonWidth - textWidth) / 2;
+      const int textY = pageHeight - buttonY + (buttonHeight - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
+      renderer.drawText(UI_10_FONT_ID, textX, textY, labels[i]);
+    }
+  }
+#else
   constexpr int buttonWidth = 106;
   constexpr int buttonHeight = BaseMetrics::values.buttonHintsHeight;
   constexpr int buttonY = BaseMetrics::values.buttonHintsHeight;  // Distance from bottom
@@ -130,6 +146,7 @@ void BaseTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const c
       renderer.drawText(UI_10_FONT_ID, textX, pageHeight - buttonY + textYOffset, labels[i]);
     }
   }
+#endif
 
   renderer.setOrientation(orig_orientation);
 }
