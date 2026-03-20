@@ -228,7 +228,7 @@ void KeyboardEntryActivity::render(RenderLock&&) {
     int cx = margin;
 
     // Shift / #+= label
-    const char* shiftLabel = (shiftState == 2) ? "#+=": (shiftState == 1) ? "SHIFT" : "shift";
+    const char* shiftLabel = (shiftState == 2) ? "#+=" : (shiftState == 1) ? "SHIFT" : "shift";
     GUI.drawKeyboardKey(renderer, Rect{cx, rowYPos, TK_WIDE_W, TK_KEY_H}, shiftLabel, shiftState == 1);
     cx += TK_WIDE_W + TK_SPACING;
 
@@ -266,10 +266,8 @@ void KeyboardEntryActivity::render(RenderLock&&) {
 // X4 button-navigated keyboard — 5-row layout with cursor navigation
 // =============================================================================
 
-const char* const KeyboardEntryActivity::keyboard[NUM_ROWS] = {
-    "`1234567890-=", "qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,./",
-    "^  _____<OK"
-};
+const char* const KeyboardEntryActivity::keyboard[NUM_ROWS] = {"`1234567890-=", "qwertyuiop[]\\", "asdfghjkl;'",
+                                                               "zxcvbnm,./", "^  _____<OK"};
 
 const char* const KeyboardEntryActivity::keyboardShift[NUM_ROWS] = {"~!@#$%^&*()_+", "QWERTYUIOP{}|", "ASDFGHJKL:\"",
                                                                     "ZXCVBNM<>?", "SPECIAL ROW"};
@@ -279,12 +277,18 @@ const char* const KeyboardEntryActivity::shiftString[3] = {"shift", "SHIFT", "LO
 int KeyboardEntryActivity::getRowLength(const int row) const {
   if (row < 0 || row >= NUM_ROWS) return 0;
   switch (row) {
-    case 0: return 13;
-    case 1: return 13;
-    case 2: return 11;
-    case 3: return 10;
-    case 4: return 11;
-    default: return 0;
+    case 0:
+      return 13;
+    case 1:
+      return 13;
+    case 2:
+      return 11;
+    case 3:
+      return 10;
+    case 4:
+      return 11;
+    default:
+      return 0;
   }
 }
 
@@ -343,10 +347,14 @@ void KeyboardEntryActivity::loop() {
   buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Left}, [this] {
     const int maxCol = getRowLength(selectedRow) - 1;
     if (selectedRow == SPECIAL_ROW) {
-      if (selectedCol >= SHIFT_COL && selectedCol < SPACE_COL) selectedCol = maxCol;
-      else if (selectedCol >= SPACE_COL && selectedCol < BACKSPACE_COL) selectedCol = SHIFT_COL;
-      else if (selectedCol >= BACKSPACE_COL && selectedCol < DONE_COL) selectedCol = SPACE_COL;
-      else if (selectedCol >= DONE_COL) selectedCol = BACKSPACE_COL;
+      if (selectedCol >= SHIFT_COL && selectedCol < SPACE_COL)
+        selectedCol = maxCol;
+      else if (selectedCol >= SPACE_COL && selectedCol < BACKSPACE_COL)
+        selectedCol = SHIFT_COL;
+      else if (selectedCol >= BACKSPACE_COL && selectedCol < DONE_COL)
+        selectedCol = SPACE_COL;
+      else if (selectedCol >= DONE_COL)
+        selectedCol = BACKSPACE_COL;
     } else {
       selectedCol = ButtonNavigator::previousIndex(selectedCol, maxCol + 1);
     }
@@ -356,10 +364,14 @@ void KeyboardEntryActivity::loop() {
   buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Right}, [this] {
     const int maxCol = getRowLength(selectedRow) - 1;
     if (selectedRow == SPECIAL_ROW) {
-      if (selectedCol >= SHIFT_COL && selectedCol < SPACE_COL) selectedCol = SPACE_COL;
-      else if (selectedCol >= SPACE_COL && selectedCol < BACKSPACE_COL) selectedCol = BACKSPACE_COL;
-      else if (selectedCol >= BACKSPACE_COL && selectedCol < DONE_COL) selectedCol = DONE_COL;
-      else if (selectedCol >= DONE_COL) selectedCol = SHIFT_COL;
+      if (selectedCol >= SHIFT_COL && selectedCol < SPACE_COL)
+        selectedCol = SPACE_COL;
+      else if (selectedCol >= SPACE_COL && selectedCol < BACKSPACE_COL)
+        selectedCol = BACKSPACE_COL;
+      else if (selectedCol >= BACKSPACE_COL && selectedCol < DONE_COL)
+        selectedCol = DONE_COL;
+      else if (selectedCol >= DONE_COL)
+        selectedCol = SHIFT_COL;
     } else {
       selectedCol = ButtonNavigator::nextIndex(selectedCol, maxCol + 1);
     }

@@ -62,6 +62,36 @@ void StatusBarSettingsActivity::loop() {
     return;
   }
 
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasTapped()) {
+    // Tap-to-select: map touch Y to menu item
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
+    const int rowHeight = metrics.listRowHeight;
+    if (touchY >= contentTop) {
+      int tappedRow = (touchY - contentTop) / rowHeight;
+      if (tappedRow >= 0 && tappedRow < MENU_ITEMS) {
+        selectedIndex = tappedRow;
+      }
+    }
+    handleSelection();
+    requestUpdate();
+    return;
+  }
+
+  // Swipe up/down to page through the list
+  if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+    selectedIndex = ButtonNavigator::previousPageIndex(selectedIndex, MENU_ITEMS, MENU_ITEMS);
+    requestUpdate();
+    return;
+  }
+  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+    selectedIndex = ButtonNavigator::nextPageIndex(selectedIndex, MENU_ITEMS, MENU_ITEMS);
+    requestUpdate();
+    return;
+  }
+#else
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
     handleSelection();
     requestUpdate();
@@ -88,6 +118,7 @@ void StatusBarSettingsActivity::loop() {
     selectedIndex = ButtonNavigator::previousIndex(selectedIndex, MENU_ITEMS);
     requestUpdate();
   });
+#endif
 }
 
 void StatusBarSettingsActivity::handleSelection() {

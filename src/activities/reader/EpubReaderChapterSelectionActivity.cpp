@@ -52,7 +52,7 @@ void EpubReaderChapterSelectionActivity::loop() {
   const int totalItems = getTotalItems();
 
 #if CROSSPOINT_PAPERS3
-  if (mappedInput.wasContentAreaTapped()) {
+  if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to chapter list item
     {
       constexpr int lineHeight = 75;
@@ -88,15 +88,13 @@ void EpubReaderChapterSelectionActivity::loop() {
   }
 
 #if CROSSPOINT_PAPERS3
-  // On Paper S3, LEFT/RIGHT zone taps and swipes page through the list
-  if (mappedInput.wasReleased(MappedInputManager::Button::Left) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+  // On Paper S3, swipe up/down to page through the list
+  if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
     selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, totalItems, pageItems);
     requestUpdate();
     return;
   }
-  if (mappedInput.wasReleased(MappedInputManager::Button::Right) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
     selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, totalItems, pageItems);
     requestUpdate();
     return;

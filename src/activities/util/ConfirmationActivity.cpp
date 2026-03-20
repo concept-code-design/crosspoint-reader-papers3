@@ -56,6 +56,26 @@ void ConfirmationActivity::render(RenderLock&& lock) {
 }
 
 void ConfirmationActivity::loop() {
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasTapped()) {
+    // Tap left half = cancel, right half = confirm
+    const int16_t touchX = mappedInput.getTouchX();
+    const bool isConfirm = touchX >= renderer.getScreenWidth() / 2;
+    ActivityResult res;
+    res.isCancelled = !isConfirm;
+    setResult(std::move(res));
+    finish();
+    return;
+  }
+
+  if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+    ActivityResult res;
+    res.isCancelled = true;
+    setResult(std::move(res));
+    finish();
+    return;
+  }
+#else
   if (mappedInput.wasReleased(MappedInputManager::Button::Right)) {
     ActivityResult res;
     res.isCancelled = false;
@@ -71,4 +91,5 @@ void ConfirmationActivity::loop() {
     finish();
     return;
   }
+#endif
 }

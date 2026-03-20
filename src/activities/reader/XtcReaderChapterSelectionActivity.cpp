@@ -60,6 +60,44 @@ void XtcReaderChapterSelectionActivity::loop() {
   const int pageItems = getPageItems();
   const int totalItems = static_cast<int>(xtc->getChapters().size());
 
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasTapped()) {
+    // Tap-to-select: map touch Y to chapter list item
+    constexpr int lineHeight = 75;
+    const int16_t touchY = mappedInput.getTouchY();
+    const int startY = 60;
+    if (touchY >= startY) {
+      int page = selectorIndex / pageItems;
+      int tappedRow = (touchY - startY) / lineHeight;
+      int tappedIndex = page * pageItems + tappedRow;
+      if (tappedIndex >= 0 && tappedIndex < totalItems) {
+        selectorIndex = tappedIndex;
+      }
+    }
+    const auto& chapters = xtc->getChapters();
+    if (!chapters.empty() && selectorIndex >= 0 && selectorIndex < static_cast<int>(chapters.size())) {
+      setResult(PageResult{chapters[selectorIndex].startPage});
+      finish();
+    }
+  } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+    ActivityResult result;
+    result.isCancelled = true;
+    setResult(std::move(result));
+    finish();
+  }
+
+  // Swipe up/down to page through the list
+  if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+    selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, totalItems, pageItems);
+    requestUpdate();
+    return;
+  }
+  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+    selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, totalItems, pageItems);
+    requestUpdate();
+    return;
+  }
+#else
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
     const auto& chapters = xtc->getChapters();
     if (!chapters.empty() && selectorIndex >= 0 && selectorIndex < static_cast<int>(chapters.size())) {
@@ -73,21 +111,6 @@ void XtcReaderChapterSelectionActivity::loop() {
     finish();
   }
 
-#if CROSSPOINT_PAPERS3
-  // On Paper S3, LEFT/RIGHT zone taps and swipes page through the list
-  if (mappedInput.wasReleased(MappedInputManager::Button::Left) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-    selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, totalItems, pageItems);
-    requestUpdate();
-    return;
-  }
-  if (mappedInput.wasReleased(MappedInputManager::Button::Right) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-    selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, totalItems, pageItems);
-    requestUpdate();
-    return;
-  }
-#else
   buttonNavigator.onNextRelease([this, totalItems] {
     selectorIndex = ButtonNavigator::nextIndex(selectorIndex, totalItems);
     requestUpdate();

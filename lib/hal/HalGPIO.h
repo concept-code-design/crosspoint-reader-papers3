@@ -36,16 +36,16 @@ class HalGPIO {
 
   // Button indices — touch zones map to these
   // 3-zone vertical split: LEFT / CENTER / RIGHT
-  static constexpr uint8_t BTN_BACK = 0;       // 2-finger tap (gesture)
-  static constexpr uint8_t BTN_CONFIRM = 1;    // Center zone tap (select / in-book settings)
-  static constexpr uint8_t BTN_LEFT = 2;       // Left zone tap (prev page / back in lists)
-  static constexpr uint8_t BTN_RIGHT = 3;      // Right zone tap (next page / forward in lists)
-  static constexpr uint8_t BTN_UP = 4;         // Swipe up (prev page in lists)
-  static constexpr uint8_t BTN_DOWN = 5;       // Swipe down (next page in lists)
+  static constexpr uint8_t BTN_BACK = 0;     // 2-finger tap (gesture)
+  static constexpr uint8_t BTN_CONFIRM = 1;  // Center zone tap (select / in-book settings)
+  static constexpr uint8_t BTN_LEFT = 2;     // Left zone tap (prev page / back in lists)
+  static constexpr uint8_t BTN_RIGHT = 3;    // Right zone tap (next page / forward in lists)
+  static constexpr uint8_t BTN_UP = 4;       // Swipe up (prev page in lists)
+  static constexpr uint8_t BTN_DOWN = 5;     // Swipe down (next page in lists)
   static constexpr uint8_t BTN_POWER = 6;
-  static constexpr uint8_t BTN_SWIPE_UP = 7;   // Explicit swipe-up gesture
-  static constexpr uint8_t BTN_SWIPE_DOWN = 8; // Explicit swipe-down gesture
-  static constexpr uint8_t BTN_TWO_FINGER = 9; // 2-finger tap (also sets BTN_BACK)
+  static constexpr uint8_t BTN_SWIPE_UP = 7;    // Explicit swipe-up gesture
+  static constexpr uint8_t BTN_SWIPE_DOWN = 8;  // Explicit swipe-down gesture
+  static constexpr uint8_t BTN_TWO_FINGER = 9;  // 2-finger tap (also sets BTN_BACK)
 
  private:
   // 3-zone vertical split: converts touch X to LEFT/CENTER/RIGHT
@@ -63,9 +63,9 @@ class HalGPIO {
   int16_t lastTouchY = -1;
 
   // Gesture tracking: swipe detection + multi-finger
-  bool touchActive = false;       // A finger is currently down
-  int16_t touchStartX = -1;       // X at touch-down
-  int16_t touchStartY = -1;       // Y at touch-down
-  bool sawMultiTouch = false;     // Saw 2+ fingers during this touch sequence
+  bool touchActive = false;                       // A finger is currently down
+  int16_t touchStartX = -1;                       // X at touch-down
+  int16_t touchStartY = -1;                       // Y at touch-down
+  bool sawMultiTouch = false;                     // Saw 2+ fingers during this touch sequence
   static constexpr int16_t SWIPE_THRESHOLD = 50;  // Min Y movement for swipe (px)
 };

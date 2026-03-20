@@ -145,7 +145,11 @@ void OtaUpdateActivity::loop() {
   }
 
   if (state == WAITING_CONFIRMATION) {
+#if CROSSPOINT_PAPERS3
+    if (mappedInput.wasTapped()) {
+#else
     if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
+#endif
       LOG_DBG("OTA", "New update available, starting download...");
       {
         RenderLock lock(*this);
@@ -179,14 +183,22 @@ void OtaUpdateActivity::loop() {
   }
 
   if (state == FAILED) {
-    if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
+    if (mappedInput.wasPressed(MappedInputManager::Button::Back)
+#if CROSSPOINT_PAPERS3
+        || mappedInput.wasTapped()
+#endif
+    ) {
       finish();
     }
     return;
   }
 
   if (state == NO_UPDATE) {
-    if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
+    if (mappedInput.wasPressed(MappedInputManager::Button::Back)
+#if CROSSPOINT_PAPERS3
+        || mappedInput.wasTapped()
+#endif
+    ) {
       finish();
     }
     return;

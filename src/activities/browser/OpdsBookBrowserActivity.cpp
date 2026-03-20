@@ -98,6 +98,46 @@ void OpdsBookBrowserActivity::loop() {
 
   // Handle browsing state
   if (state == BrowserState::BROWSING) {
+#if CROSSPOINT_PAPERS3
+    if (mappedInput.wasTapped()) {
+      if (!entries.empty()) {
+        // Tap-to-select: map touch Y to list item
+        const int16_t touchY = mappedInput.getTouchY();
+        constexpr int startY = 60;
+        constexpr int rowHeight = 30;
+        if (touchY >= startY) {
+          int page = selectorIndex / PAGE_ITEMS;
+          int tappedRow = (touchY - startY) / rowHeight;
+          int tappedIndex = page * PAGE_ITEMS + tappedRow;
+          if (tappedIndex >= 0 && tappedIndex < static_cast<int>(entries.size())) {
+            selectorIndex = tappedIndex;
+          }
+        }
+        const auto& entry = entries[selectorIndex];
+        if (entry.type == OpdsEntryType::BOOK) {
+          downloadBook(entry);
+        } else {
+          navigateToEntry(entry);
+        }
+      }
+    } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+      navigateBack();
+    }
+
+    // Swipe up/down to page through the list
+    if (!entries.empty()) {
+      if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+        selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
+        requestUpdate();
+        return;
+      }
+      if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+        selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
+        requestUpdate();
+        return;
+      }
+    }
+#else
     if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
       if (!entries.empty()) {
         const auto& entry = entries[selectorIndex];
@@ -113,21 +153,6 @@ void OpdsBookBrowserActivity::loop() {
 
     // Handle navigation
     if (!entries.empty()) {
-#if CROSSPOINT_PAPERS3
-      // On Paper S3, LEFT/RIGHT zone taps and swipes page through the list
-      if (mappedInput.wasReleased(MappedInputManager::Button::Left) ||
-          mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-        selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
-        requestUpdate();
-        return;
-      }
-      if (mappedInput.wasReleased(MappedInputManager::Button::Right) ||
-          mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-        selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
-        requestUpdate();
-        return;
-      }
-#else
       buttonNavigator.onNextRelease([this] {
         selectorIndex = ButtonNavigator::nextIndex(selectorIndex, entries.size());
         requestUpdate();
@@ -147,8 +172,8 @@ void OpdsBookBrowserActivity::loop() {
         selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
         requestUpdate();
       });
-#endif
     }
+#endif
   }
 }
 

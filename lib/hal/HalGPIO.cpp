@@ -9,7 +9,7 @@ static constexpr int16_t PORT_W = 540;
 static constexpr int16_t PORT_H = 960;
 
 // 3-zone vertical split: each zone is 1/3 of screen width (180px)
-static constexpr int16_t ZONE_LEFT_END = PORT_W / 3;    // 180
+static constexpr int16_t ZONE_LEFT_END = PORT_W / 3;         // 180
 static constexpr int16_t ZONE_RIGHT_START = PORT_W * 2 / 3;  // 360
 
 void HalGPIO::begin() {

@@ -140,7 +140,7 @@ void FileBrowserActivity::loop() {
   const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false);
 
 #if CROSSPOINT_PAPERS3
-  if (mappedInput.wasContentAreaTapped()) {
+  if (mappedInput.wasTapped()) {
     if (files.empty()) return;
 
     // Tap-to-select: map touch Y to list item
@@ -237,15 +237,13 @@ void FileBrowserActivity::loop() {
 
   int listSize = static_cast<int>(files.size());
 #if CROSSPOINT_PAPERS3
-  // On Paper S3, LEFT/RIGHT zone taps and swipes page through the list
-  if (mappedInput.wasReleased(MappedInputManager::Button::Left) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+  // On Paper S3, swipe up/down to page through the list
+  if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
     selectorIndex = ButtonNavigator::previousPageIndex(static_cast<int>(selectorIndex), listSize, pageItems);
     requestUpdate();
     return;
   }
-  if (mappedInput.wasReleased(MappedInputManager::Button::Right) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
     selectorIndex = ButtonNavigator::nextPageIndex(static_cast<int>(selectorIndex), listSize, pageItems);
     requestUpdate();
     return;

@@ -48,7 +48,7 @@ void RecentBooksActivity::loop() {
   const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, true);
 
 #if CROSSPOINT_PAPERS3
-  if (mappedInput.wasContentAreaTapped()) {
+  if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to list item
     const auto& metrics = UITheme::getInstance().getMetrics();
     const int16_t touchY = mappedInput.getTouchY();
@@ -78,15 +78,13 @@ void RecentBooksActivity::loop() {
 
   int listSize = static_cast<int>(recentBooks.size());
 #if CROSSPOINT_PAPERS3
-  // On Paper S3, LEFT/RIGHT zone taps and swipes page through the list
-  if (mappedInput.wasReleased(MappedInputManager::Button::Left) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+  // On Paper S3, swipe up/down to page through the list
+  if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
     selectorIndex = ButtonNavigator::previousPageIndex(static_cast<int>(selectorIndex), listSize, pageItems);
     requestUpdate();
     return;
   }
-  if (mappedInput.wasReleased(MappedInputManager::Button::Right) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
     selectorIndex = ButtonNavigator::nextPageIndex(static_cast<int>(selectorIndex), listSize, pageItems);
     requestUpdate();
     return;

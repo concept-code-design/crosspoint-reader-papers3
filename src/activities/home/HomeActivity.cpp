@@ -190,7 +190,7 @@ void HomeActivity::loop() {
   });
 
 #if CROSSPOINT_PAPERS3
-  if (mappedInput.wasContentAreaTapped()) {
+  if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to the tapped item directly
     const auto& metrics = UITheme::getInstance().getMetrics();
     const int16_t touchY = mappedInput.getTouchY();

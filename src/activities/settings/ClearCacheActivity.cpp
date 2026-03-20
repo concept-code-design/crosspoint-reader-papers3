@@ -121,7 +121,11 @@ void ClearCacheActivity::clearCache() {
 
 void ClearCacheActivity::loop() {
   if (state == WARNING) {
+#if CROSSPOINT_PAPERS3
+    if (mappedInput.wasTapped()) {
+#else
     if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
+#endif
       LOG_DBG("CLEAR_CACHE", "User confirmed, starting cache clear");
       {
         RenderLock lock(*this);
@@ -140,7 +144,11 @@ void ClearCacheActivity::loop() {
   }
 
   if (state == SUCCESS || state == FAILED) {
-    if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
+    if (mappedInput.wasPressed(MappedInputManager::Button::Back)
+#if CROSSPOINT_PAPERS3
+        || mappedInput.wasTapped()
+#endif
+    ) {
       goBack();
     }
     return;

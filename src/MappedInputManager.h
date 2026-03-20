@@ -21,12 +21,16 @@ class MappedInputManager {
   // Raw touch coordinate access for tap-to-select navigation
   int16_t getTouchX() const { return gpio.getLastTouchX(); }
   int16_t getTouchY() const { return gpio.getLastTouchY(); }
-  // Returns true if a single-finger CENTER zone tap was released.
-  // Excludes 2-finger back, swipes, and LEFT/RIGHT zone taps.
-  // Use this for list/menu activities where a center tap should select an item.
-  bool wasContentAreaTapped() const {
-    return gpio.wasReleased(HalGPIO::BTN_CONFIRM) && !gpio.wasReleased(HalGPIO::BTN_BACK) &&
-           !gpio.wasReleased(HalGPIO::BTN_SWIPE_UP) && !gpio.wasReleased(HalGPIO::BTN_SWIPE_DOWN);
+  // Returns true if any single-finger tap was released, regardless of zone.
+  // Excludes 2-finger back and swipe gestures.
+  // Use this for all non-reader activities where a tap anywhere should select an item.
+  bool wasTapped() const {
+    // On the release frame, BTN_TWO_FINGER / BTN_SWIPE_* are SET in currentState
+    // while the zone button transitions from previousState, so use isPressed guards.
+    if (gpio.isPressed(HalGPIO::BTN_TWO_FINGER)) return false;
+    if (gpio.isPressed(HalGPIO::BTN_SWIPE_UP) || gpio.isPressed(HalGPIO::BTN_SWIPE_DOWN)) return false;
+    return gpio.wasReleased(HalGPIO::BTN_LEFT) || gpio.wasReleased(HalGPIO::BTN_CONFIRM) ||
+           gpio.wasReleased(HalGPIO::BTN_RIGHT);
   }
   bool wasPressed(Button button) const;
   bool wasReleased(Button button) const;

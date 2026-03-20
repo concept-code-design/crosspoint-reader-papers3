@@ -77,7 +77,7 @@ void SettingsActivity::loop() {
 
   // Handle actions with early return
 #if CROSSPOINT_PAPERS3
-  if (mappedInput.wasContentAreaTapped()) {
+  if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to tab bar or settings item
     {
       const auto& metrics = UITheme::getInstance().getMetrics();

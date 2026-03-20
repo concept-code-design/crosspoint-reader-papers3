@@ -8,6 +8,7 @@
 
 #include "I18nKeys.h"
 #include "MappedInputManager.h"
+#include "components/UITheme.h"
 #include "fontIds.h"
 
 void LanguageSelectActivity::onEnter() {
@@ -31,6 +32,40 @@ void LanguageSelectActivity::loop() {
     return;
   }
 
+#if CROSSPOINT_PAPERS3
+  if (mappedInput.wasTapped()) {
+    // Tap-to-select: map touch Y to language list item
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
+    const int rowHeight = metrics.listRowHeight;
+    const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, false, false);
+    if (touchY >= contentTop) {
+      int page = selectedIndex / pageItems;
+      int tappedRow = (touchY - contentTop) / rowHeight;
+      int tappedIndex = page * pageItems + tappedRow;
+      if (tappedIndex >= 0 && tappedIndex < totalItems) {
+        selectedIndex = tappedIndex;
+      }
+    }
+    handleSelection();
+    return;
+  }
+
+  // Swipe up/down to page through the list
+  if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+    const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, false, false);
+    selectedIndex = ButtonNavigator::previousPageIndex(static_cast<int>(selectedIndex), totalItems, pageItems);
+    requestUpdate();
+    return;
+  }
+  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+    const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, false, false);
+    selectedIndex = ButtonNavigator::nextPageIndex(static_cast<int>(selectedIndex), totalItems, pageItems);
+    requestUpdate();
+    return;
+  }
+#else
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
     handleSelection();
     return;
@@ -46,6 +81,7 @@ void LanguageSelectActivity::loop() {
     selectedIndex = ButtonNavigator::previousIndex(static_cast<int>(selectedIndex), totalItems);
     requestUpdate();
   });
+#endif
 }
 
 void LanguageSelectActivity::handleSelection() {

@@ -57,7 +57,7 @@ void EpubReaderMenuActivity::loop() {
   });
 
 #if CROSSPOINT_PAPERS3
-  if (mappedInput.wasContentAreaTapped()) {
+  if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to menu item
     {
       constexpr int lineHeight = 75;
