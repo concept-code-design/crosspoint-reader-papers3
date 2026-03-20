@@ -81,13 +81,21 @@ void HalGPIO::update() {
     // Finger just lifted — classify the gesture
     touchActive = false;
 
-    if (sawMultiTouch) {
-      // 2-finger tap → BACK
+    if (footerHeight > 0) {
+      // Footer active (non-reader): no gestures — all touches are plain taps.
+      // 2-finger and swipe are disabled; the footer buttons provide Back/Prev/Next.
+      int btn = touchZoneToButton(touchStartX, touchStartY);
+      if (btn >= 0 && btn < HALGPIO_NUM_BUTTONS) {
+        currentState |= (1 << btn);
+      }
+      LOG_DBG("TOUCH", "tap at (%d,%d) btn=%d (footer mode)", touchStartX, touchStartY, btn);
+    } else if (sawMultiTouch) {
+      // 2-finger tap → BACK (reader only)
       currentState |= (1 << BTN_BACK);
       currentState |= (1 << BTN_TWO_FINGER);
       LOG_DBG("TOUCH", "2-finger tap -> BACK");
     } else {
-      // Single finger: check for swipe vs tap
+      // Single finger: check for swipe vs tap (reader only)
       int16_t deltaY = lastTouchY - touchStartY;
 
       if (deltaY < -SWIPE_THRESHOLD) {

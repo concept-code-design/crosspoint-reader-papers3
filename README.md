@@ -103,13 +103,13 @@ area selects the item at that position.
 | **Center** | Open in-book settings menu |
 | **Right** | Next page |
 
-### Gestures (work everywhere)
+### Gestures (in-book reader only)
 
 | Gesture | Action |
 |---------|--------|
-| **2-finger tap** | Go back / exit current screen |
-| **Swipe up** | Previous page (lists or reader) |
-| **Swipe down** | Next page (lists or reader) |
+| **2-finger tap** | Go back / exit reader |
+| **Swipe up** | Previous page |
+| **Swipe down** | Next page |
 
 ## Internals
 
