@@ -55,19 +55,30 @@ pio device monitor
 
 ## Navigation
 
-The Paper S3 uses touch gestures for all navigation. The screen is split into
-three equal vertical zones, and additional gestures handle going back and
-scrolling through long lists.
+The Paper S3 uses a combination of on-screen buttons and touch gestures.
 
-### Gestures (work everywhere)
+### Footer nav bar (all screens except in-book reader)
 
-| Gesture | Action |
-|---------|--------|
-| **2-finger tap** | Go back / exit current screen |
-| **Swipe up** | Page backward (lists) or previous page (reader) |
-| **Swipe down** | Page forward (lists) or next page (reader) |
+Every non-reader screen shows a row of tappable buttons at the bottom:
 
-### Touch zones
+```
++--------+---------+--------+--------+
+|  Back  | Confirm |  Prev  |  Next  |
++--------+---------+--------+--------+
+```
+
+| Button | Action |
+|--------|--------|
+| **Back** | Go back / exit current screen |
+| **Confirm** | Select / confirm highlighted item |
+| **Prev (▲)** | Previous page of items |
+| **Next (▼)** | Next page of items |
+
+Only buttons relevant to the current screen are shown.
+
+### Touch zones (content area)
+
+The content area above the footer is split into three vertical zones:
 
 ```
 +-----------+-----------+-----------+
@@ -76,9 +87,15 @@ scrolling through long lists.
 |   1/3     |   1/3     |   1/3     |
 |           |           |           |
 +-----------+-----------+-----------+
++--------+---------+--------+--------+
+|  Back  | Confirm |  Prev  |  Next  |
++--------+---------+--------+--------+
 ```
 
-### In-book reader
+In **long lists** (file browser, chapters, recent books), tapping the content
+area selects the item at that position.
+
+### In-book reader (full screen, no footer)
 
 | Zone | Action |
 |------|--------|
@@ -86,21 +103,13 @@ scrolling through long lists.
 | **Center** | Open in-book settings menu |
 | **Right** | Next page |
 
-### Menus and settings
+### Gestures (work everywhere)
 
-| Zone | Action |
-|------|--------|
-| **Left** | Move selector up |
-| **Center** | Select / confirm |
-| **Right** | Move selector down |
-
-### Long lists (file browser, chapters, recent books)
-
-| Zone | Action |
-|------|--------|
-| **Left** | Previous page of items |
-| **Center** | Tap to select item by position |
-| **Right** | Next page of items |
+| Gesture | Action |
+|---------|--------|
+| **2-finger tap** | Go back / exit current screen |
+| **Swipe up** | Previous page (lists or reader) |
+| **Swipe down** | Next page (lists or reader) |
 
 ## Internals
 
