@@ -293,6 +293,11 @@ void setup() {
 
   setupDisplayAndFonts();
 
+#if CROSSPOINT_PAPERS3
+  // Periodic full refresh every 5 screen updates to clear accumulated ghosting on e-ink
+  renderer.setPeriodicFullRefreshInterval(5);
+#endif
+
   activityManager.goToBoot();
 
   APP_STATE.loadFromFile();

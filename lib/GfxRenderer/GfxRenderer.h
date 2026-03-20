@@ -33,7 +33,9 @@ class GfxRenderer {
   RenderMode renderMode;
   Orientation orientation;
   bool fadingFix;
-  mutable bool forceNextFullRefresh = false;  // Consumed by displayBuffer()
+  mutable bool forceNextFullRefresh = false;     // Consumed by displayBuffer()
+  mutable uint16_t rendersSinceFullRefresh = 0;  // Counter for periodic full refresh
+  uint16_t periodicFullRefreshInterval = 0;      // 0 = disabled; >0 = auto full refresh every N renders
   uint8_t* frameBuffer = nullptr;
   uint8_t* bwBufferStored = nullptr;  // Single PSRAM allocation for BW buffer backup
   std::map<int, EpdFontFamily> fontMap;
@@ -92,6 +94,9 @@ class GfxRenderer {
   void displayBuffer(HalDisplay::RefreshMode refreshMode = HalDisplay::FAST_REFRESH) const;
   // Force the next displayBuffer() to use FULL_REFRESH (consumed after one use)
   void requestFullRefresh() { forceNextFullRefresh = true; }
+  // Set periodic full refresh interval (0 = disabled). Every N fast renders,
+  // automatically upgrade to FULL_REFRESH to reduce accumulated ghosting.
+  void setPeriodicFullRefreshInterval(uint16_t interval) { periodicFullRefreshInterval = interval; }
   // EXPERIMENTAL: Windowed update - display only a rectangular region
   // void displayWindow(int x, int y, int width, int height) const;
   void invertScreen() const;

@@ -845,6 +845,11 @@ void GfxRenderer::displayBuffer(const HalDisplay::RefreshMode refreshMode) const
   if (forceNextFullRefresh) {
     mode = HalDisplay::FULL_REFRESH;
     forceNextFullRefresh = false;
+    rendersSinceFullRefresh = 0;
+  } else if (periodicFullRefreshInterval > 0 && ++rendersSinceFullRefresh >= periodicFullRefreshInterval) {
+    // Periodic full refresh to clear accumulated ghosting on e-ink
+    mode = HalDisplay::FULL_REFRESH;
+    rendersSinceFullRefresh = 0;
   }
   display.displayBuffer(mode, fadingFix);
 }
