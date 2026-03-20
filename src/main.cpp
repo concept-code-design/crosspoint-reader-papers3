@@ -294,8 +294,8 @@ void setup() {
   setupDisplayAndFonts();
 
 #if CROSSPOINT_PAPERS3
-  // Periodic full refresh every 5 screen updates to clear accumulated ghosting on e-ink
-  renderer.setPeriodicFullRefreshInterval(5);
+  // Use the user's refresh frequency setting for periodic full refreshes to clear ghosting
+  renderer.setPeriodicFullRefreshInterval(SETTINGS.getRefreshFrequency());
 #endif
 
   activityManager.goToBoot();
@@ -332,6 +332,9 @@ void loop() {
   gpio.update();
 
   renderer.setFadingFix(SETTINGS.fadingFix);
+#if CROSSPOINT_PAPERS3
+  renderer.setPeriodicFullRefreshInterval(SETTINGS.getRefreshFrequency());
+#endif
 
   if (Serial && millis() - lastMemPrint >= 10000) {
     LOG_INF("MEM", "Free: %d bytes, Total: %d bytes, Min Free: %d bytes, MaxAlloc: %d bytes", ESP.getFreeHeap(),
