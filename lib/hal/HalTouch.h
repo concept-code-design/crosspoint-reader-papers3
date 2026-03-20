@@ -16,6 +16,7 @@ class HalTouch {
   bool update();
 
   bool isTouched() const { return _touched; }
+  uint8_t getNumPoints() const { return _numPoints; }
   int16_t getX() const { return _x; }
   int16_t getY() const { return _y; }
 
@@ -30,6 +31,7 @@ class HalTouch {
   uint8_t _addr = 0x14;
   int16_t _x = 0;
   int16_t _y = 0;
+  uint8_t _numPoints = 0;
   bool _touched = false;
   bool _wasTouched = false;
   unsigned long _lastTouchMs = 0;

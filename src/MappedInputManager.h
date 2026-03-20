@@ -21,9 +21,13 @@ class MappedInputManager {
   // Raw touch coordinate access for tap-to-select navigation
   int16_t getTouchX() const { return gpio.getLastTouchX(); }
   int16_t getTouchY() const { return gpio.getLastTouchY(); }
-  // Returns true if any touch in the content area was released (not Back zone).
-  // Use this for list/menu activities where any tap should select an item.
-  bool wasContentAreaTapped() const { return gpio.wasAnyReleased() && !gpio.wasReleased(HalGPIO::BTN_BACK); }
+  // Returns true if a single-finger CENTER zone tap was released.
+  // Excludes 2-finger back, swipes, and LEFT/RIGHT zone taps.
+  // Use this for list/menu activities where a center tap should select an item.
+  bool wasContentAreaTapped() const {
+    return gpio.wasReleased(HalGPIO::BTN_CONFIRM) && !gpio.wasReleased(HalGPIO::BTN_BACK) &&
+           !gpio.wasReleased(HalGPIO::BTN_SWIPE_UP) && !gpio.wasReleased(HalGPIO::BTN_SWIPE_DOWN);
+  }
   bool wasPressed(Button button) const;
   bool wasReleased(Button button) const;
   bool isPressed(Button button) const;

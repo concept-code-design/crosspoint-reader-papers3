@@ -8,10 +8,9 @@
 static constexpr int16_t PORT_W = 540;
 static constexpr int16_t PORT_H = 960;
 
-// Zone boundaries (portrait logical coordinates)
-static constexpr int16_t TOP_ZONE_H = 70;     // Back zone at top
-static constexpr int16_t BOT_ZONE_TOP = 890;  // Bottom strip for Left/Right/Back
-static constexpr int16_t EDGE_STRIP_W = 108;  // 20% width for Up/Down edge strips
+// 3-zone vertical split: each zone is 1/3 of screen width (180px)
+static constexpr int16_t ZONE_LEFT_END = PORT_W / 3;    // 180
+static constexpr int16_t ZONE_RIGHT_START = PORT_W * 2 / 3;  // 360
 
 void HalGPIO::begin() {
   // Initialize SD card SPI bus with PaperS3 pins
@@ -24,32 +23,11 @@ void HalGPIO::begin() {
 
 int HalGPIO::touchZoneToButton(int16_t touchX, int16_t touchY) const {
   // GT911 on M5PaperS3 reports portrait coordinates directly: x[0-539], y[0-959].
-  // These map to our portrait logical space without further rotation.
-  int16_t logX = touchX;
-  int16_t logY = touchY;
+  if (touchX < 0 || touchX >= PORT_W || touchY < 0 || touchY >= PORT_H) return -1;
 
-  // Clamp to portrait bounds
-  if (logX < 0 || logX >= PORT_W || logY < 0 || logY >= PORT_H) return -1;
-
-  // --- Top zone: BACK ---
-  if (logY < TOP_ZONE_H) {
-    return BTN_BACK;
-  }
-
-  // --- Bottom strip: BACK / LEFT / RIGHT ---
-  if (logY >= BOT_ZONE_TOP) {
-    int16_t third = PORT_W / 3;  // 180
-    if (logX < third) return BTN_BACK;
-    if (logX < third * 2) return BTN_LEFT;
-    return BTN_RIGHT;
-  }
-
-  // --- Content area (between top and bottom zones) ---
-  // Left edge strip (20%): UP / Page Back
-  if (logX < EDGE_STRIP_W) return BTN_UP;
-  // Right edge strip (20%): DOWN / Page Forward
-  if (logX >= PORT_W - EDGE_STRIP_W) return BTN_DOWN;
-  // Center (60%): CONFIRM / Select
+  // Simple 3-zone vertical split across the entire screen
+  if (touchX < ZONE_LEFT_END) return BTN_LEFT;
+  if (touchX >= ZONE_RIGHT_START) return BTN_RIGHT;
   return BTN_CONFIRM;
 }
 
@@ -60,25 +38,75 @@ void HalGPIO::update() {
   // During cooldown (after activity transition), drain touch events but don't act on them
   if (millis() < cooldownUntil) {
     touch.update();  // Drain pending touch reports
+    touchActive = false;
+    sawMultiTouch = false;
     return;
   }
 
-  // Poll GT911 touch
-  if (touch.update()) {
+  bool touching = touch.update();
+  uint8_t numPoints = touch.getNumPoints();
+
+  if (touching) {
     lastTouchX = touch.getX();
     lastTouchY = touch.getY();
+
+    // Track multi-touch: if we ever see 2+ fingers during this sequence, remember it
+    if (numPoints >= 2) {
+      sawMultiTouch = true;
+    }
+
+    // Record start position on initial touch-down
+    if (!touchActive) {
+      touchActive = true;
+      touchStartX = lastTouchX;
+      touchStartY = lastTouchY;
+    }
+
+    // While finger is down, report the zone button as pressed (for held-time detection)
     int btn = touchZoneToButton(lastTouchX, lastTouchY);
-    LOG_DBG("TOUCH", "raw=(%d,%d) btn=%d", lastTouchX, lastTouchY, btn);
     if (btn >= 0 && btn < HALGPIO_NUM_BUTTONS) {
       currentState |= (1 << btn);
     }
+  } else if (touchActive) {
+    // Finger just lifted — classify the gesture
+    touchActive = false;
+
+    if (sawMultiTouch) {
+      // 2-finger tap → BACK
+      currentState |= (1 << BTN_BACK);
+      currentState |= (1 << BTN_TWO_FINGER);
+      LOG_DBG("TOUCH", "2-finger tap -> BACK");
+    } else {
+      // Single finger: check for swipe vs tap
+      int16_t deltaY = lastTouchY - touchStartY;
+
+      if (deltaY < -SWIPE_THRESHOLD) {
+        // Swiped up (finger moved upward)
+        currentState |= (1 << BTN_SWIPE_UP);
+        currentState |= (1 << BTN_UP);
+        LOG_DBG("TOUCH", "swipe up dy=%d", deltaY);
+      } else if (deltaY > SWIPE_THRESHOLD) {
+        // Swiped down (finger moved downward)
+        currentState |= (1 << BTN_SWIPE_DOWN);
+        currentState |= (1 << BTN_DOWN);
+        LOG_DBG("TOUCH", "swipe down dy=%d", deltaY);
+      } else {
+        // Tap — map to zone based on touch-down position
+        int btn = touchZoneToButton(touchStartX, touchStartY);
+        if (btn >= 0 && btn < HALGPIO_NUM_BUTTONS) {
+          currentState |= (1 << btn);
+        }
+        LOG_DBG("TOUCH", "tap at (%d,%d) btn=%d", touchStartX, touchStartY, btn);
+      }
+    }
+
+    sawMultiTouch = false;
   }
 
   // Track press timing
-  uint8_t newPresses = currentState & ~previousState;
+  uint16_t newPresses = currentState & ~previousState;
   if (newPresses) {
     pressStartTime = millis();
-    // Find the first newly pressed button
     for (uint8_t i = 0; i < HALGPIO_NUM_BUTTONS; i++) {
       if (newPresses & (1 << i)) {
         lastPressedButton = i;
@@ -92,6 +120,8 @@ void HalGPIO::clearState() {
   previousState = 0;
   currentState = 0;
   pressStartTime = 0;
+  touchActive = false;
+  sawMultiTouch = false;
   cooldownUntil = millis() + 200;  // Suppress input for 200ms after activity transition
 }
 

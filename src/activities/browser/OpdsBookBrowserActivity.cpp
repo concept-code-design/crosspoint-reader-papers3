@@ -113,6 +113,21 @@ void OpdsBookBrowserActivity::loop() {
 
     // Handle navigation
     if (!entries.empty()) {
+#if CROSSPOINT_PAPERS3
+      // On Paper S3, LEFT/RIGHT zone taps and swipes page through the list
+      if (mappedInput.wasReleased(MappedInputManager::Button::Left) ||
+          mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+        selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
+        requestUpdate();
+        return;
+      }
+      if (mappedInput.wasReleased(MappedInputManager::Button::Right) ||
+          mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+        selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
+        requestUpdate();
+        return;
+      }
+#else
       buttonNavigator.onNextRelease([this] {
         selectorIndex = ButtonNavigator::nextIndex(selectorIndex, entries.size());
         requestUpdate();
@@ -132,6 +147,7 @@ void OpdsBookBrowserActivity::loop() {
         selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
         requestUpdate();
       });
+#endif
     }
   }
 }

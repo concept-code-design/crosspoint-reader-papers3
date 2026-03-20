@@ -53,29 +53,54 @@ pio run --target upload
 pio device monitor
 ```
 
-## Touch Zones
+## Navigation
 
-The touch screen is divided into zones that map to the original button-based navigation:
+The Paper S3 uses touch gestures for all navigation. The screen is split into
+three equal vertical zones, and additional gestures handle going back and
+scrolling through long lists.
+
+### Gestures (work everywhere)
+
+| Gesture | Action |
+|---------|--------|
+| **2-finger tap** | Go back / exit current screen |
+| **Swipe up** | Page backward (lists) or previous page (reader) |
+| **Swipe down** | Page forward (lists) or next page (reader) |
+
+### Touch zones
 
 ```
-+-------------------------------------------+
-|              BACK (top strip)             |
-+------+----------------------------+-------+
-|      |                            |       |
-| UP / |        CONFIRM /           | DOWN /|
-| PAGE |        SELECT              | PAGE  |
-| BACK |                            | FWD   |
-|      |                            |       |
-+------+---+--------------------+---+-------+
-| BACK     |      LEFT         |   RIGHT   |
-+-----------+------------------+------------+
++-----------+-----------+-----------+
+|           |           |           |
+|   LEFT    |  CENTER   |  RIGHT    |
+|   1/3     |   1/3     |   1/3     |
+|           |           |           |
++-----------+-----------+-----------+
 ```
 
-- **Center**: select / confirm
-- **Left edge**: scroll up / page back
-- **Right edge**: scroll down / page forward
-- **Top**: go back
-- **Bottom**: back / left / right
+### In-book reader
+
+| Zone | Action |
+|------|--------|
+| **Left** | Previous page |
+| **Center** | Open in-book settings menu |
+| **Right** | Next page |
+
+### Menus and settings
+
+| Zone | Action |
+|------|--------|
+| **Left** | Move selector up |
+| **Center** | Select / confirm |
+| **Right** | Move selector down |
+
+### Long lists (file browser, chapters, recent books)
+
+| Zone | Action |
+|------|--------|
+| **Left** | Previous page of items |
+| **Center** | Tap to select item by position |
+| **Right** | Next page of items |
 
 ## Internals
 

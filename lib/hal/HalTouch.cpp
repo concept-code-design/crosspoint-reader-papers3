@@ -28,6 +28,7 @@ bool HalTouch::begin(int sda, int scl, int intPin, uint8_t addr) {
 
 bool HalTouch::update() {
   _touched = false;
+  _numPoints = 0;
 
   // Read status register
   uint8_t status = 0;
@@ -39,6 +40,7 @@ bool HalTouch::update() {
 
   if (bufferReady) {
     if (numPoints > 0 && numPoints <= 5) {
+      _numPoints = numPoints;
       uint8_t buf[8];
       if (readRegisters(REG_POINT1, buf, 8)) {
         // M5PaperS3 GT911 layout at 0x8150: xL, xH, yL, yH, sizeL, sizeH, ...
