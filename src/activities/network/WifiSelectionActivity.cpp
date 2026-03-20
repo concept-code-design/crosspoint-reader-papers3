@@ -468,18 +468,16 @@ void WifiSelectionActivity::loop() {
       return;
     }
 
-    // Swipe up/down to page through the list
+    // Up/Down move one row at a time
     if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-      selectedNetworkIndex = ButtonNavigator::previousPageIndex(
-          selectedNetworkIndex, networks.size(),
-          UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false));
+      selectedNetworkIndex = ButtonNavigator::previousIndex(
+          selectedNetworkIndex, networks.size());
       requestUpdate();
       return;
     }
     if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-      selectedNetworkIndex = ButtonNavigator::nextPageIndex(
-          selectedNetworkIndex, networks.size(),
-          UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false));
+      selectedNetworkIndex = ButtonNavigator::nextIndex(
+          selectedNetworkIndex, networks.size());
       requestUpdate();
       return;
     }

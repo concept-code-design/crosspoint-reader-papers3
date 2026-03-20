@@ -52,16 +52,14 @@ void LanguageSelectActivity::loop() {
     return;
   }
 
-  // Swipe up/down to page through the list
+  // Up/Down move one row at a time
   if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-    const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, false, false);
-    selectedIndex = ButtonNavigator::previousPageIndex(static_cast<int>(selectedIndex), totalItems, pageItems);
+    selectedIndex = ButtonNavigator::previousIndex(static_cast<int>(selectedIndex), totalItems);
     requestUpdate();
     return;
   }
   if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-    const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, false, false);
-    selectedIndex = ButtonNavigator::nextPageIndex(static_cast<int>(selectedIndex), totalItems, pageItems);
+    selectedIndex = ButtonNavigator::nextIndex(static_cast<int>(selectedIndex), totalItems);
     requestUpdate();
     return;
   }

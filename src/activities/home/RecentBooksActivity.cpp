@@ -78,14 +78,14 @@ void RecentBooksActivity::loop() {
 
   int listSize = static_cast<int>(recentBooks.size());
 #if CROSSPOINT_PAPERS3
-  // On Paper S3, swipe up/down to page through the list
+  // On Paper S3, Up/Down move one row at a time
   if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-    selectorIndex = ButtonNavigator::previousPageIndex(static_cast<int>(selectorIndex), listSize, pageItems);
+    selectorIndex = ButtonNavigator::previousIndex(static_cast<int>(selectorIndex), listSize);
     requestUpdate();
     return;
   }
   if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-    selectorIndex = ButtonNavigator::nextPageIndex(static_cast<int>(selectorIndex), listSize, pageItems);
+    selectorIndex = ButtonNavigator::nextIndex(static_cast<int>(selectorIndex), listSize);
     requestUpdate();
     return;
   }

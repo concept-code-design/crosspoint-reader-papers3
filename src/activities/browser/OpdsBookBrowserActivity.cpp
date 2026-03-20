@@ -134,15 +134,15 @@ void OpdsBookBrowserActivity::loop() {
       navigateBack();
     }
 
-    // Swipe up/down to page through the list
+    // Up/Down move one row at a time
     if (!entries.empty()) {
       if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-        selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
+        selectorIndex = ButtonNavigator::previousIndex(selectorIndex, entries.size());
         requestUpdate();
         return;
       }
       if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-        selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, entries.size(), PAGE_ITEMS);
+        selectorIndex = ButtonNavigator::nextIndex(selectorIndex, entries.size());
         requestUpdate();
         return;
       }

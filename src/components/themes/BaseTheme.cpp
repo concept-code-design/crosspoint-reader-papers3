@@ -390,6 +390,10 @@ void BaseTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, const std:
 
         // Calculate width based on aspect ratio, maintaining baseHeight
         if (imgWidth > 0 && imgHeight > 0) {
+#if CROSSPOINT_PAPERS3
+          // Fit mode: cover fills the full screen width (540px)
+          bookWidth = rect.width;
+#else
           const float aspectRatio = static_cast<float>(imgWidth) / static_cast<float>(imgHeight);
           bookWidth = static_cast<int>(baseHeight * aspectRatio);
 
@@ -398,6 +402,7 @@ void BaseTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, const std:
           if (bookWidth > maxWidth) {
             bookWidth = maxWidth;
           }
+#endif
         } else {
           bookWidth = rect.width / 2;  // Fallback
         }

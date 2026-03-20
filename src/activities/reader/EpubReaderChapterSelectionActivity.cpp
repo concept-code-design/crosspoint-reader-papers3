@@ -88,14 +88,14 @@ void EpubReaderChapterSelectionActivity::loop() {
   }
 
 #if CROSSPOINT_PAPERS3
-  // On Paper S3, swipe up/down to page through the list
+  // On Paper S3, Up/Down move one row at a time
   if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-    selectorIndex = ButtonNavigator::previousPageIndex(selectorIndex, totalItems, pageItems);
+    selectorIndex = ButtonNavigator::previousIndex(selectorIndex, totalItems);
     requestUpdate();
     return;
   }
   if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-    selectorIndex = ButtonNavigator::nextPageIndex(selectorIndex, totalItems, pageItems);
+    selectorIndex = ButtonNavigator::nextIndex(selectorIndex, totalItems);
     requestUpdate();
     return;
   }
