@@ -77,6 +77,9 @@ void HalPowerManager::startDeepSleep(HalGPIO& gpio) const {
   digitalWrite(PWROFF_PULSE_PIN, LOW);
 
   // If powerOff doesn't halt (e.g., USB connected), fall back to deep sleep
+  // with a 5-second timer wakeup as safety net — without a wakeup source the
+  // device would be stuck in unrecoverable deep sleep.
+  esp_sleep_enable_timer_wakeup(5 * 1000 * 1000);  // 5 seconds in microseconds
   esp_deep_sleep_start();
 }
 
