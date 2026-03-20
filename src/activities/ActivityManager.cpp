@@ -83,6 +83,8 @@ void ActivityManager::loop() {
         currentActivity = std::move(stackActivities.back());
         stackActivities.pop_back();
         LOG_DBG("ACT", "Popped from activity stack, new size = %zu", stackActivities.size());
+        // Flush stale input so gestures from the child (e.g. 2-finger back) don't leak into the parent
+        currentActivity->mappedInput.clearState();
         // Handle result if necessary
         if (currentActivity->resultHandler) {
           LOG_DBG("ACT", "Handling result for popped activity");
