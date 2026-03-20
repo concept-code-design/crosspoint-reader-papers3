@@ -462,8 +462,10 @@ void LyraTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, const std:
           Bitmap bitmap(file);
           if (bitmap.parseHeaders() == BmpReaderError::Ok) {
             coverWidth = bitmap.getWidth();
+            renderer.setRenderMode(GfxRenderer::GRAYSCALE_DIRECT);
             renderer.drawBitmap(bitmap, tileX + hPaddingInSelection, tileY + hPaddingInSelection, coverWidth,
                                 LyraMetrics::values.homeCoverHeight);
+            renderer.setRenderMode(GfxRenderer::BW);
           } else {
             hasCover = false;
           }
