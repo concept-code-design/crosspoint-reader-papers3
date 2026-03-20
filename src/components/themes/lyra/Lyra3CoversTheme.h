@@ -35,9 +35,15 @@ constexpr ThemeMetrics values = {.batteryWidth = 16,
                                  .scrollBarWidth = 4,
                                  .scrollBarRightOffset = 5,
                                  .homeTopPadding = 56,
+#if CROSSPOINT_PAPERS3
+                                 .homeCoverHeight = 305,
+                                 .homeCoverTileHeight = 405,
+                                 .homeRecentBooksCount = 3,
+#else
                                  .homeCoverHeight = 226,
                                  .homeCoverTileHeight = 300,
                                  .homeRecentBooksCount = 3,
+#endif
 #if CROSSPOINT_PAPERS3
                                  .buttonHintsHeight = 0,
                                  .sideButtonHintsWidth = 0,
