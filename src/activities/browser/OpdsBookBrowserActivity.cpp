@@ -55,7 +55,15 @@ void OpdsBookBrowserActivity::loop() {
 
   // Handle error state - Confirm retries, Back goes back or home
   if (state == BrowserState::ERROR) {
+#if CROSSPOINT_PAPERS3
+    // Check Back first: on the 2-finger lift frame, wasReleased(zone) fires
+    // simultaneously with BTN_BACK.  Prioritise Back to avoid accidental retry.
+    if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+      navigateBack();
+    } else if (mappedInput.wasTapped()) {
+#else
     if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+#endif
       // Check if WiFi is still connected
       if (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
         // WiFi connected - just retry fetching the feed
@@ -69,8 +77,10 @@ void OpdsBookBrowserActivity::loop() {
         LOG_DBG("OPDS", "Retry: WiFi not connected, launching selection");
         launchWifiSelection();
       }
+#if !CROSSPOINT_PAPERS3
     } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
       navigateBack();
+#endif
     }
     return;
   }

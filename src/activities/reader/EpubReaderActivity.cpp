@@ -139,6 +139,16 @@ void EpubReaderActivity::loop() {
     }
   }
 
+#if CROSSPOINT_PAPERS3
+  // On the 2-finger lift frame, BTN_BACK is set in currentState while the zone
+  // button transitions out of previousState, causing wasReleased(zone) to fire
+  // simultaneously.  Skip all zone-based actions when BTN_BACK is active so the
+  // Back handler processes correctly on the next frame (wasReleased).
+  if (mappedInput.isPressed(MappedInputManager::Button::Back)) {
+    return;
+  }
+#endif
+
   // Enter reader menu activity.
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
     const int currentPage = section ? section->currentPage + 1 : 0;
