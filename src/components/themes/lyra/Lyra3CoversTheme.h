@@ -27,7 +27,11 @@ constexpr ThemeMetrics values = {.batteryWidth = 16,
                                  .menuSpacing = 8,
 #endif
                                  .tabSpacing = 8,
+#if CROSSPOINT_PAPERS3
+                                 .tabBarHeight = 80,
+#else
                                  .tabBarHeight = 40,
+#endif
                                  .scrollBarWidth = 4,
                                  .scrollBarRightOffset = 5,
                                  .homeTopPadding = 56,

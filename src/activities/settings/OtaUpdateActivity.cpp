@@ -87,12 +87,14 @@ void OtaUpdateActivity::render(RenderLock&&) {
   float updaterProgress = 0;
   if (state == UPDATE_IN_PROGRESS) {
     LOG_DBG("OTA", "Update progress: %d / %d", updater.getProcessedSize(), updater.getTotalSize());
-    updaterProgress = static_cast<float>(updater.getProcessedSize()) / static_cast<float>(updater.getTotalSize());
-    // Only update every 2% at the most
-    if (static_cast<int>(updaterProgress * 50) == lastUpdaterPercentage / 2) {
+    const auto total = updater.getTotalSize();
+    updaterProgress = (total > 0) ? static_cast<float>(updater.getProcessedSize()) / static_cast<float>(total) : 0;
+    const unsigned int currentPercent = static_cast<unsigned int>(updaterProgress * 100);
+    // Only redraw every 2% to avoid excessive e-ink refreshes
+    if (lastUpdaterPercentage != UNINITIALIZED_PERCENTAGE && currentPercent / 2 == lastUpdaterPercentage / 2) {
       return;
     }
-    lastUpdaterPercentage = static_cast<int>(updaterProgress * 100);
+    lastUpdaterPercentage = currentPercent;
   }
 
   if (state == CHECKING_FOR_UPDATE) {
@@ -104,8 +106,16 @@ void OtaUpdateActivity::render(RenderLock&&) {
     renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, top + height * 2 + metrics.verticalSpacing * 2,
                       (std::string(tr(STR_NEW_VERSION)) + updater.getLatestVersion()).c_str());
 
+#if CROSSPOINT_PAPERS3
+    // Draw visible touch action hints at the bottom since drawButtonHints is a no-op on Paper S3
+    const int hintY = pageHeight - height * 2 - metrics.verticalSpacing * 3;
+    renderer.drawCenteredText(UI_10_FONT_ID, hintY, (std::string(tr(STR_CONFIRM)) + ": " + tr(STR_UPDATE)).c_str());
+    renderer.drawCenteredText(UI_10_FONT_ID, hintY + height + metrics.verticalSpacing,
+                              (std::string(tr(STR_BACK)) + ": " + tr(STR_CANCEL)).c_str());
+#else
     const auto labels = mappedInput.mapLabels(tr(STR_CANCEL), tr(STR_UPDATE), "", "");
     GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+#endif
   } else if (state == UPDATE_IN_PROGRESS) {
     renderer.drawCenteredText(UI_10_FONT_ID, top, tr(STR_UPDATING));
 
@@ -124,12 +134,20 @@ void OtaUpdateActivity::render(RenderLock&&) {
         (std::to_string(updater.getProcessedSize()) + " / " + std::to_string(updater.getTotalSize())).c_str());
   } else if (state == NO_UPDATE) {
     renderer.drawCenteredText(UI_10_FONT_ID, top, tr(STR_NO_UPDATE), true, EpdFontFamily::BOLD);
+#if CROSSPOINT_PAPERS3
+    renderer.drawCenteredText(UI_10_FONT_ID, top + height + metrics.verticalSpacing * 2, tr(STR_BACK));
+#else
     const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
     GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+#endif
   } else if (state == FAILED) {
     renderer.drawCenteredText(UI_10_FONT_ID, top, tr(STR_UPDATE_FAILED), true, EpdFontFamily::BOLD);
+#if CROSSPOINT_PAPERS3
+    renderer.drawCenteredText(UI_10_FONT_ID, top + height + metrics.verticalSpacing * 2, tr(STR_BACK));
+#else
     const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
     GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+#endif
   } else if (state == FINISHED) {
     renderer.drawCenteredText(UI_10_FONT_ID, top, tr(STR_UPDATE_COMPLETE), true, EpdFontFamily::BOLD);
     renderer.drawCenteredText(UI_10_FONT_ID, top + height + metrics.verticalSpacing, tr(STR_POWER_ON_HINT));
@@ -156,7 +174,7 @@ void OtaUpdateActivity::loop() {
         state = UPDATE_IN_PROGRESS;
       }
       requestUpdateAndWait();
-      const auto res = updater.installUpdate();
+      const auto res = updater.installUpdate([this] { requestUpdate(); });
 
       if (res != OtaUpdater::OK) {
         LOG_DBG("OTA", "Update failed: %d", res);
