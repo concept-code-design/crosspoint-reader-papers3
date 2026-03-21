@@ -8,6 +8,12 @@
 
 void KeyboardEntryActivity::onEnter() {
   Activity::onEnter();
+#if CROSSPOINT_PAPERS3
+  // Disable footer touch zones — this keyboard handles raw touch coordinates
+  // via handleTouchAt(). Without this, taps on the bottom row (MODE/SPACE/OK)
+  // fall in the footer zone and get remapped to Back/Confirm/Up/Down.
+  mappedInput.setFooterHeight(0);
+#endif
   requestUpdate();
 }
 

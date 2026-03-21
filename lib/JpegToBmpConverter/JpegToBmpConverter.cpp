@@ -27,9 +27,14 @@ constexpr bool USE_ATKINSON = true;          // Atkinson dithering (cleaner than
 constexpr bool USE_FLOYD_STEINBERG = false;  // Floyd-Steinberg error diffusion (can cause "worm" artifacts)
 constexpr bool USE_NOISE_DITHERING = false;  // Hash-based noise dithering (good for downsampling)
 // Pre-resize to target display size (CRITICAL: avoids dithering artifacts from post-downsampling)
-constexpr bool USE_PRESCALE = true;     // true: scale image to target size before dithering
-constexpr int TARGET_MAX_WIDTH = 480;   // Max width for cover images (portrait display width)
-constexpr int TARGET_MAX_HEIGHT = 800;  // Max height for cover images (portrait display height)
+constexpr bool USE_PRESCALE = true;  // true: scale image to target size before dithering
+#if CROSSPOINT_PAPERS3
+constexpr int TARGET_MAX_WIDTH = 540;   // Paper S3 portrait width (must match display)
+constexpr int TARGET_MAX_HEIGHT = 960;  // Paper S3 portrait height (must match display)
+#else
+constexpr int TARGET_MAX_WIDTH = 480;   // X4 portrait display width
+constexpr int TARGET_MAX_HEIGHT = 800;  // X4 portrait display height
+#endif
 // ============================================================================
 
 inline void write16(Print& out, const uint16_t value) {

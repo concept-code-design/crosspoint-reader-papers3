@@ -481,6 +481,9 @@ void LyraTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, const std:
           Bitmap bitmap(file);
           if (bitmap.parseHeaders() == BmpReaderError::Ok) {
             coverWidth = bitmap.getWidth();
+            // Cap cover width so title text still fits beside it
+            const int maxCoverWidth = (tileWidth - 2 * hPaddingInSelection) * 3 / 5;
+            if (coverWidth > maxCoverWidth) coverWidth = maxCoverWidth;
             renderer.setRenderMode(GfxRenderer::GRAYSCALE_DIRECT);
             renderer.drawBitmap(bitmap, tileX + hPaddingInSelection, tileY + hPaddingInSelection, coverWidth,
                                 LyraMetrics::values.homeCoverHeight);
