@@ -2,11 +2,16 @@
 
 #include <Logging.h>
 #include <WiFi.h>
+#include <Wire.h>
 #include <esp_sleep.h>
 
 #include <cassert>
 
 #include "HalGPIO.h"
+
+// AXP2101 PMIC I2C address and battery registers
+static constexpr uint8_t AXP2101_ADDR = 0x34;
+static constexpr uint8_t AXP2101_REG_BATTERY_PERCENT = 0xA4;  // SOC (State of Charge) 0-100
 
 // M5PaperS3 power-off pulse pin (active-high pulse turns off PMIC)
 static constexpr int PWROFF_PULSE_PIN = 44;
@@ -84,8 +89,25 @@ void HalPowerManager::startDeepSleep(HalGPIO& gpio) const {
 }
 
 uint16_t HalPowerManager::getBatteryPercentage() const {
-  // TODO: Implement direct ADC/PMIC battery reading for M5PaperS3
+#if CROSSPOINT_PAPERS3
+  // Read battery SOC from AXP2101 PMIC via Wire1 (shared with GT911 touch).
+  // Both callers run on the main loop task so no bus contention.
+  Wire1.beginTransmission(AXP2101_ADDR);
+  Wire1.write(AXP2101_REG_BATTERY_PERCENT);
+  if (Wire1.endTransmission(false) != 0) {
+    LOG_ERR("PWR", "AXP2101 I2C write failed");
+    return 0;
+  }
+  if (Wire1.requestFrom(AXP2101_ADDR, (uint8_t)1) != 1) {
+    LOG_ERR("PWR", "AXP2101 I2C read failed");
+    return 0;
+  }
+  uint8_t soc = Wire1.read();
+  if (soc > 100) soc = 100;
+  return soc;
+#else
   return 100;
+#endif
 }
 
 HalPowerManager::Lock::Lock() {
