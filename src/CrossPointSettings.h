@@ -66,6 +66,20 @@ class CrossPointSettings {
     ORIENTATION_COUNT
   };
 
+#if CROSSPOINT_PAPERS3
+  static bool isPaperS3OrientationSupported(uint8_t orientation) {
+    return orientation == PORTRAIT || orientation == LANDSCAPE_CCW;
+  }
+
+  static uint8_t normalizePaperS3Orientation(uint8_t orientation) {
+    return orientation == LANDSCAPE_CCW ? LANDSCAPE_CCW : PORTRAIT;
+  }
+
+  static uint8_t nextPaperS3Orientation(uint8_t orientation) {
+    return orientation == LANDSCAPE_CCW ? PORTRAIT : LANDSCAPE_CCW;
+  }
+#endif
+
   // Front button layout options (legacy)
   // Default: Back, Confirm, Left, Right
   // Swapped: Left, Right, Back, Confirm
@@ -223,6 +237,8 @@ class CrossPointSettings {
   static void validateFrontButtonMapping(CrossPointSettings& settings);
 
  private:
+  bool normalizePaperS3Orientation();
+
   bool loadFromBinaryFile();
 
  public:

@@ -3,9 +3,11 @@
 Port of the [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) firmware to the **M5Paper S3**.
 Built using **PlatformIO** and targeting the **ESP32-S3** (dual-core Xtensa LX7, 240 MHz, 8 MB OPI-PSRAM).
 
-## Release 0.2.2
+## Release 0.2.3
 
-- Official Paper S3 GT911 touch handling with improved tap reliability
+- Hide unsupported Paper S3 orientation options in settings and reader menus
+- Normalize saved Paper S3 orientation settings to supported values on load
+- Fix Paper S3 chapter selection taps so footer/select actions keep the current row
 - `EPD_Painter` remains the display driver
 - Long-press chapter skip stays user-controlled in Settings
 

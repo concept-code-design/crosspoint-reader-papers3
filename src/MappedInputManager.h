@@ -23,6 +23,7 @@ class MappedInputManager {
   int16_t getTouchY() const { return gpio.getLastTouchY(); }
   // Footer nav bar height — forwarded to HalGPIO for touch zone mapping.
   void setFooterHeight(int16_t height) { gpio.setFooterHeight(height); }
+  void setTouchOrientation(uint8_t orientation) { gpio.setTouchOrientation(orientation); }
 
   // Returns true if any single-finger tap was released, regardless of zone.
   // Excludes 2-finger back and swipe gestures.

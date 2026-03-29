@@ -8,6 +8,44 @@
 static constexpr int16_t PORT_W = 540;
 static constexpr int16_t PORT_H = 960;
 
+static void getLogicalDimensions(uint8_t orientation, int16_t* outWidth, int16_t* outHeight) {
+  switch (orientation) {
+    case 1:  // LandscapeClockwise
+    case 3:  // LandscapeCounterClockwise
+      *outWidth = PORT_H;
+      *outHeight = PORT_W;
+      break;
+    case 0:  // Portrait
+    case 2:  // PortraitInverted
+    default:
+      *outWidth = PORT_W;
+      *outHeight = PORT_H;
+      break;
+  }
+}
+
+void HalGPIO::transformTouchPoint(int16_t rawX, int16_t rawY, int16_t* outX, int16_t* outY) const {
+  switch (touchOrientation) {
+    case 1:  // LandscapeClockwise
+      *outX = PORT_H - 1 - rawY;
+      *outY = rawX;
+      break;
+    case 2:  // PortraitInverted
+      *outX = PORT_W - 1 - rawX;
+      *outY = PORT_H - 1 - rawY;
+      break;
+    case 3:  // LandscapeCounterClockwise
+      *outX = rawY;
+      *outY = PORT_W - 1 - rawX;
+      break;
+    case 0:  // Portrait
+    default:
+      *outX = rawX;
+      *outY = rawY;
+      break;
+  }
+}
+
 // 3-zone vertical split: each zone is 1/3 of screen width (180px)
 static constexpr int16_t ZONE_LEFT_END = PORT_W / 3;         // 180
 static constexpr int16_t ZONE_RIGHT_START = PORT_W * 2 / 3;  // 360
@@ -21,23 +59,47 @@ void HalGPIO::begin() {
   }
 }
 
+int16_t HalGPIO::getLastTouchX() const {
+  int16_t logicalX = 0;
+  int16_t logicalY = 0;
+  transformTouchPoint(lastTouchX, lastTouchY, &logicalX, &logicalY);
+  return logicalX;
+}
+
+int16_t HalGPIO::getLastTouchY() const {
+  int16_t logicalX = 0;
+  int16_t logicalY = 0;
+  transformTouchPoint(lastTouchX, lastTouchY, &logicalX, &logicalY);
+  return logicalY;
+}
+
 int HalGPIO::touchZoneToButton(int16_t touchX, int16_t touchY) const {
   // GT911 on M5PaperS3 reports portrait coordinates directly: x[0-539], y[0-959].
-  if (touchX < 0 || touchX >= PORT_W || touchY < 0 || touchY >= PORT_H) return -1;
+  int16_t logicalX = 0;
+  int16_t logicalY = 0;
+  transformTouchPoint(touchX, touchY, &logicalX, &logicalY);
+
+  int16_t logicalW = 0;
+  int16_t logicalH = 0;
+  getLogicalDimensions(touchOrientation, &logicalW, &logicalH);
+
+  if (logicalX < 0 || logicalX >= logicalW || logicalY < 0 || logicalY >= logicalH) return -1;
 
   // Footer nav bar: bottom footerHeight pixels are split into 4 equal tap zones
   // mapping to Back / Confirm / Up / Down (matches drawButtonHints layout)
-  if (footerHeight > 0 && touchY >= PORT_H - footerHeight) {
-    const int16_t quarter = PORT_W / 4;
-    if (touchX < quarter) return BTN_BACK;
-    if (touchX < quarter * 2) return BTN_CONFIRM;
-    if (touchX < quarter * 3) return BTN_UP;
+  if (footerHeight > 0 && logicalY >= logicalH - footerHeight) {
+    const int16_t quarter = logicalW / 4;
+    if (logicalX < quarter) return BTN_BACK;
+    if (logicalX < quarter * 2) return BTN_CONFIRM;
+    if (logicalX < quarter * 3) return BTN_UP;
     return BTN_DOWN;
   }
 
   // Simple 3-zone vertical split across the content area
-  if (touchX < ZONE_LEFT_END) return BTN_LEFT;
-  if (touchX >= ZONE_RIGHT_START) return BTN_RIGHT;
+  const int16_t zoneLeftEnd = logicalW / 3;
+  const int16_t zoneRightStart = logicalW * 2 / 3;
+  if (logicalX < zoneLeftEnd) return BTN_LEFT;
+  if (logicalX >= zoneRightStart) return BTN_RIGHT;
   return BTN_CONFIRM;
 }
 
@@ -97,7 +159,13 @@ void HalGPIO::update() {
       LOG_DBG("TOUCH", "2-finger tap -> BACK");
     } else {
       // Single finger: check for swipe vs tap (reader only)
-      int16_t deltaY = lastTouchY - touchStartY;
+      int16_t startLogicalX = 0;
+      int16_t startLogicalY = 0;
+      int16_t lastLogicalX = 0;
+      int16_t lastLogicalY = 0;
+      transformTouchPoint(touchStartX, touchStartY, &startLogicalX, &startLogicalY);
+      transformTouchPoint(lastTouchX, lastTouchY, &lastLogicalX, &lastLogicalY);
+      int16_t deltaY = lastLogicalY - startLogicalY;
 
       if (deltaY < -SWIPE_THRESHOLD) {
         // Swiped up (finger moved upward)

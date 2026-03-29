@@ -21,6 +21,16 @@ void readAndValidate(FsFile& file, uint8_t& member, const uint8_t maxValue) {
   }
 }
 
+#if CROSSPOINT_PAPERS3
+bool CrossPointSettings::normalizePaperS3Orientation() {
+  if (!isPaperS3OrientationSupported(orientation)) {
+    orientation = PORTRAIT;
+    return true;
+  }
+  return false;
+}
+#endif
+
 namespace {
 constexpr uint8_t SETTINGS_FILE_VERSION = 1;
 constexpr char SETTINGS_FILE_BIN[] = "/.crosspoint/settings.bin";
@@ -89,7 +99,7 @@ bool CrossPointSettings::loadFromFile() {
       bool resave = false;
       bool result = JsonSettingsIO::loadSettings(*this, json.c_str(), &resave);
 #if CROSSPOINT_PAPERS3
-      longPressChapterSkip = 0;
+      resave = normalizePaperS3Orientation() || resave;
 #endif
       if (result && resave) {
         if (saveToFile()) {
@@ -106,7 +116,7 @@ bool CrossPointSettings::loadFromFile() {
   if (Storage.exists(SETTINGS_FILE_BIN)) {
     if (loadFromBinaryFile()) {
 #if CROSSPOINT_PAPERS3
-      longPressChapterSkip = 0;
+      normalizePaperS3Orientation();
 #endif
       if (saveToFile()) {
         Storage.rename(SETTINGS_FILE_BIN, SETTINGS_FILE_BAK);

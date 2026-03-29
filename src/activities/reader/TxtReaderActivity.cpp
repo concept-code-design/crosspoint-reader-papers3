@@ -30,6 +30,7 @@ void TxtReaderActivity::onEnter() {
   }
 
   ReaderUtils::applyOrientation(renderer, SETTINGS.orientation);
+  mappedInput.setTouchOrientation(SETTINGS.orientation);
 
   txt->setupCacheDir();
 
@@ -49,6 +50,7 @@ void TxtReaderActivity::onExit() {
 
   // Reset orientation back to portrait for the rest of the UI
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+  mappedInput.setTouchOrientation(CrossPointSettings::PORTRAIT);
 
   pageOffsets.clear();
   currentPageLines.clear();

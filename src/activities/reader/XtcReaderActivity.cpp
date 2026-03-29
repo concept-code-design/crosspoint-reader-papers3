@@ -17,6 +17,7 @@
 #include "MappedInputManager.h"
 #include "RecentBooksStore.h"
 #include "XtcReaderChapterSelectionActivity.h"
+#include "ReaderUtils.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -31,6 +32,9 @@ void XtcReaderActivity::onEnter() {
   if (!xtc) {
     return;
   }
+
+  ReaderUtils::applyOrientation(renderer, SETTINGS.orientation);
+  mappedInput.setTouchOrientation(SETTINGS.orientation);
 
   xtc->setupCacheDir();
 
@@ -48,6 +52,9 @@ void XtcReaderActivity::onEnter() {
 
 void XtcReaderActivity::onExit() {
   Activity::onExit();
+
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+  mappedInput.setTouchOrientation(CrossPointSettings::PORTRAIT);
 
   APP_STATE.readerActivityLoadCount = 0;
   APP_STATE.saveToFile();

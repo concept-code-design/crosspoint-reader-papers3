@@ -10,6 +10,7 @@ void Activity::onEnter() {
   mappedInput.clearState();  // Prevent stale touches from triggering actions in the new activity
 #if CROSSPOINT_PAPERS3
   renderer.requestFullRefresh();  // Full e-ink refresh on every activity transition to prevent ghosting
+  mappedInput.setTouchOrientation(renderer.getOrientation());
   // Enable footer nav buttons for all non-reader activities; readers use full screen for content
   mappedInput.setFooterHeight(isReaderActivity() ? 0 : UITheme::getInstance().getMetrics().buttonHintsHeight);
 #endif

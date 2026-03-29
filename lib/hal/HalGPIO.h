@@ -19,13 +19,14 @@ class HalGPIO {
   bool isPressed(uint8_t buttonIndex) const;
 
   // Raw touch coordinate access for tap-to-select navigation
-  int16_t getLastTouchX() const { return lastTouchX; }
-  int16_t getLastTouchY() const { return lastTouchY; }
+  int16_t getLastTouchX() const;
+  int16_t getLastTouchY() const;
 
   // Footer nav bar: taps in the bottom footerHeight pixels map to
   // Back / Confirm / Up / Down instead of the normal 3-zone split.
   // Set to 0 to disable (e.g. in reader activities).
   void setFooterHeight(int16_t height) { footerHeight = height; }
+  void setTouchOrientation(uint8_t orientation) { touchOrientation = orientation; }
   bool wasPressed(uint8_t buttonIndex) const;
   bool wasAnyPressed() const;
   bool wasReleased(uint8_t buttonIndex) const;
@@ -77,4 +78,7 @@ class HalGPIO {
 
   // Footer nav bar height (portrait pixels from bottom edge)
   int16_t footerHeight = 0;
+  uint8_t touchOrientation = 0;
+
+  void transformTouchPoint(int16_t rawX, int16_t rawY, int16_t* outX, int16_t* outY) const;
 };
