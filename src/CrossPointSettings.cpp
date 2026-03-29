@@ -88,6 +88,9 @@ bool CrossPointSettings::loadFromFile() {
     if (!json.isEmpty()) {
       bool resave = false;
       bool result = JsonSettingsIO::loadSettings(*this, json.c_str(), &resave);
+#if CROSSPOINT_PAPERS3
+      longPressChapterSkip = 0;
+#endif
       if (result && resave) {
         if (saveToFile()) {
           LOG_DBG("CPS", "Resaved settings to update format");
@@ -102,6 +105,9 @@ bool CrossPointSettings::loadFromFile() {
   // Fall back to binary migration
   if (Storage.exists(SETTINGS_FILE_BIN)) {
     if (loadFromBinaryFile()) {
+#if CROSSPOINT_PAPERS3
+      longPressChapterSkip = 0;
+#endif
       if (saveToFile()) {
         Storage.rename(SETTINGS_FILE_BIN, SETTINGS_FILE_BAK);
         LOG_DBG("CPS", "Migrated settings.bin to settings.json");

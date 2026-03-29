@@ -79,6 +79,7 @@ void HalGPIO::update() {
     }
   } else if (touchActive) {
     // Finger just lifted — classify the gesture
+    lastHeldTime = millis() - pressStartTime;
     touchActive = false;
 
     if (footerHeight > 0) {
@@ -138,6 +139,7 @@ void HalGPIO::clearState() {
   previousState = 0;
   currentState = 0;
   pressStartTime = 0;
+  lastHeldTime = 0;
   touchActive = false;
   sawMultiTouch = false;
   cooldownUntil = millis() + 200;  // Suppress input for 200ms after activity transition
@@ -165,7 +167,7 @@ bool HalGPIO::wasReleased(uint8_t buttonIndex) const {
 bool HalGPIO::wasAnyReleased() const { return (previousState & ~currentState) != 0; }
 
 unsigned long HalGPIO::getHeldTime() const {
-  if (currentState == 0) return 0;
+  if (currentState == 0) return lastHeldTime;
   return millis() - pressStartTime;
 }
 

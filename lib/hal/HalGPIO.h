@@ -62,6 +62,7 @@ class HalGPIO {
   uint16_t currentState = 0;   // Bitmask of currently pressed buttons
   uint16_t previousState = 0;  // Bitmask from last frame
   unsigned long pressStartTime = 0;
+  unsigned long lastHeldTime = 0;
   unsigned long cooldownUntil = 0;  // Suppress input until this millis() timestamp
   uint8_t lastPressedButton = 0xFF;
   int16_t lastTouchX = -1;
