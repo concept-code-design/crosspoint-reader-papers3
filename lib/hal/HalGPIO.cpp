@@ -140,7 +140,7 @@ void HalGPIO::clearState() {
   pressStartTime = 0;
   touchActive = false;
   sawMultiTouch = false;
-  cooldownUntil = millis() + 200;  // Suppress input for 200ms after activity transition
+  cooldownUntil = millis() + 100;  // Suppress input for 100ms after activity transition
 }
 
 bool HalGPIO::isPressed(uint8_t buttonIndex) const {
