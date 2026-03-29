@@ -48,10 +48,10 @@ bool HalTouch::update() {
         _x = (int16_t)(buf[0] | (buf[1] << 8));
         _y = (int16_t)(buf[2] | (buf[3] << 8));
 
-        // Asymmetric debounce (like macroreader): only debounce press, not release.
-        // Suppress new touch-down if within DEBOUNCE_MS of last release;
-        // if finger is already down (_wasTouched), pass through immediately.
-        if (_wasTouched || (millis() - _lastTouchMs >= DEBOUNCE_MS)) {
+        // Debounce: suppress new touch-down if within DEBOUNCE_MS of last release
+        if (!_wasTouched && (millis() - _lastTouchMs < DEBOUNCE_MS)) {
+          // Finger just came down but too soon after last release — ignore
+        } else {
           _touched = true;
         }
       }

@@ -35,5 +35,5 @@ class HalTouch {
   bool _touched = false;
   bool _wasTouched = false;
   unsigned long _lastTouchMs = 0;
-  static constexpr unsigned long DEBOUNCE_MS = 30;
+  static constexpr unsigned long DEBOUNCE_MS = 150;
 };
