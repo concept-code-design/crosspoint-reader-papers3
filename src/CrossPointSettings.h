@@ -59,10 +59,10 @@ class CrossPointSettings {
   enum STATUS_BAR_TITLE { BOOK_TITLE = 0, CHAPTER_TITLE = 1, HIDE_TITLE = 2, STATUS_BAR_TITLE_COUNT };
 
   enum ORIENTATION {
-    PORTRAIT = 0,       // 480x800 logical coordinates (current default)
-    LANDSCAPE_CW = 1,   // 800x480 logical coordinates, rotated 180° (swap top/bottom)
-    INVERTED = 2,       // 480x800 logical coordinates, inverted
-    LANDSCAPE_CCW = 3,  // 800x480 logical coordinates, native panel orientation
+    PORTRAIT = 0,       // 540x960 logical coordinates (current default)
+    LANDSCAPE_CW = 1,   // 960x540 logical coordinates, rotated 180° (swap top/bottom)
+    INVERTED = 2,       // 540x960 logical coordinates, inverted
+    LANDSCAPE_CCW = 3,  // 960x540 logical coordinates, native panel orientation
     ORIENTATION_COUNT
   };
 

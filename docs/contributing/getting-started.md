@@ -8,7 +8,7 @@ This guide helps you build and run CrossPoint locally.
 - Python 3.8+
 - `clang-format` 21+ in your `PATH` (CI uses clang-format 21)
 - USB-C cable
-- Xteink X4 device for hardware testing
+- M5Stack Paper S3 device for hardware testing
 
 If `./bin/clang-format-fix` fails with either of these errors, install clang-format 21:
 

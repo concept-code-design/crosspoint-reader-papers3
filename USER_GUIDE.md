@@ -34,7 +34,7 @@ Welcome to the **CrossPoint** firmware. This guide outlines the hardware control
 
 ## 1. Hardware Overview
 
-The device utilises the standard buttons on the Xteink X4 (in the same layout as the manufacturer firmware, by default):
+The M5Stack Paper S3 uses capacitive touch input with the following touch zone layout:
 
 ### Button Layout
 | Location        | Buttons                                              |
@@ -336,7 +336,7 @@ To use custom sleep images, set the sleep screen mode to **Custom** or **Cover +
 > [!TIP]
 > For best results:
 > - Use uncompressed BMP files with 24-bit color depth
-> - Use a resolution of 480x800 pixels to match the device's screen resolution.
+> - Use a resolution of 540x960 pixels to match the device's screen resolution.
 
 ---
 

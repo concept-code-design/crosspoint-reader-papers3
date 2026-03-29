@@ -1,13 +1,13 @@
 # CrossPoint Reader Development Guide
 
-Project: Open-source e-reader firmware for Xteink X4 (ESP32-C3)
-Mission: Provide a lightweight, high-performance reading experience focused on EPUB rendering on constrained hardware.
+Project: Open-source e-reader firmware for M5Stack Paper S3 (ESP32-S3)
+Mission: Provide a lightweight, high-performance reading experience focused on EPUB rendering.
 
 ## AI Agent Identity and Cognitive Rules
 * Role: Senior Embedded Systems Engineer (ESP-IDF/Arduino-ESP32 specialized).
-* Primary Constraint: 380KB RAM is the hard ceiling. Stability is non-negotiable.
+* Primary Constraint: Stability is non-negotiable. The ESP32-S3 has 8MB OPI-PSRAM but DRAM is still limited — allocate large buffers in PSRAM via `ps_malloc()`.
 * Evidence-Based Reasoning: Before proposing a change, you MUST cite the specific file path and line numbers that justify the modification.
-* Anti-Hallucination: Do not assume the existence of libraries or ESP-IDF functions. If you are unsure of an API's availability for the ESP32-C3 RISC-V target, check the open-x4-sdk or official docs first.
+* Anti-Hallucination: Do not assume the existence of libraries or ESP-IDF functions. If you are unsure of an API's availability for the ESP32-S3 Xtensa target, check official docs first.
 * No Unfounded Claims: Do not claim performance gains or memory savings without explaining the technical mechanism (e.g., DRAM vs IRAM usage).
 * Resource Justification: You must justify any new heap allocation (new, malloc, std::vector) or explain why a stack/static alternative was rejected.
 * Verification: After suggesting a fix, instruct the user on how to verify it (e.g., monitoring heap via Serial or checking a specific cache file).
@@ -40,18 +40,19 @@ find src -name "*.cpp" -o -name "*.h" | xargs clang-format -i
 ## Platform and Hardware Constraints
 
 ### Hardware Specs
-* MCU: ESP32-C3 (Single-core RISC-V @ 160MHz)
-* RAM: ~380KB usable (VERY LIMITED - primary project constraint)
-  * **NO PSRAM**: ESP32-C3 has no PSRAM capability (unlike ESP32-S3)
-  * **Single Buffer Mode**: Only ONE 48KB framebuffer (not double-buffered)
+* MCU: ESP32-S3 (Dual-core Xtensa LX7 @ 240MHz)
+* RAM: ~512KB DRAM + 8MB OPI-PSRAM
+  * **PSRAM available**: Large buffers (framebuffer, image decoding) should use PSRAM via `ps_malloc()` or `MALLOC_CAP_SPIRAM`
+  * Framebuffer is allocated in PSRAM (8bpp, 518,400 bytes for 960x540)
 * Flash: 16MB (Instruction storage and static data)
-* Display: 800x480 E-Ink (Slow refresh, monochrome, 1-2s full update)
-  * Framebuffer: 48,000 bytes (800 × 480 ÷ 8)
-* Storage: SD Card (Used for books and aggressive caching)
+* Display: 960x540 E-Ink (parallel bus via IT8951-like driver, capacitive touch via GT911)
+* Touch: GT911 capacitive touch controller on I2C1 (SDA=41, SCL=42, INT=48)
+* Power: AXP2101 PMIC (battery management, power-off via GPIO44 pulse)
+* Storage: SD Card via SPI (CS=47, SCK=39, MOSI=38, MISO=40)
 
 ### The Resource Protocol
-1. Stack Safety: Limit local function variables to < 256 bytes. The ESP32-C3 default stack is small; use std::unique_ptr or static pools for larger buffers.
-2. Heap Fragmentation: Avoid repeated new/delete in loops. Allocate buffers once during onEnter() and reuse them.
+1. Stack Safety: Limit local function variables to < 512 bytes. Use std::unique_ptr or static pools for larger buffers.
+2. Heap Fragmentation: Avoid repeated new/delete in loops. Allocate buffers once during onEnter() and reuse them. For large allocations, prefer PSRAM (`ps_malloc()`).
 3. Flash Persistence: Large constant data (UI strings, lookup tables) MUST be marked static const to stay in Flash (Instruction Bus), freeing DRAM.
 4. String Policy: Prohibit std::string and Arduino String in hot paths. Use std::string_view for read-only access and snprintf with fixed char[] buffers for construction.
 5. UI Strings: All user-facing text must use the `tr()` macro (e.g., `tr(STR_LOADING)`) for i18n support. Never hardcode UI strings directly. For the avoidance of doubt, logging messages (LOG_DBG/LOG_ERR) can be hardcoded, but user-facing text must use `tr()`.
@@ -97,38 +98,35 @@ find src -name "*.cpp" -o -name "*.h" | xargs clang-format -i
 These flags in `platformio.ini` fundamentally affect firmware behavior:
 
 ```cpp
--DEINK_DISPLAY_SINGLE_BUFFER_MODE=1  // Single framebuffer (saves 48KB RAM!)
+-DCROSSPOINT_PAPERS3=1               // M5PaperS3 target flag
+-DEPD_PAINTER_PRESET_M5PAPER_S3=1    // Display preset selection
+-DBOARD_HAS_PSRAM=1                  // 8MB OPI-PSRAM available
+-DCONFIG_SPIRAM_MODE_OCT=1           // OPI (Octal) PSRAM mode
 -DARDUINO_USB_MODE=1                 // Enable USB CDC
 -DARDUINO_USB_CDC_ON_BOOT=1          // Serial available immediately at boot
 -DXML_CONTEXT_BYTES=1024             // XML parser memory limit (EPUB parsing)
 -DUSE_UTF8_LONG_NAMES=1              // SD card long filename support
--DMINIZ_NO_ZLIB_COMPATIBLE_NAMES=1   // Avoid zlib name conflicts
 -DXML_GE=0                           // Disable XML general entities (security)
 ```
-
-**SINGLE_BUFFER_MODE implications**:
-- Only ONE framebuffer exists (not double-buffered)
-- Grayscale rendering requires temporary buffer allocation (`renderer.storeBwBuffer()`)
-- Must call `renderer.restoreBwBuffer()` to free temporary buffers
-- See [lib/GfxRenderer/GfxRenderer.cpp:439-440](../lib/GfxRenderer/GfxRenderer.cpp) for malloc usage
 
 ### Directory Structure
 * lib/: Internal libraries (Epub engine, GfxRenderer, UITheme, I18n)
   * lib/hal/: Hardware Abstraction Layer (HalDisplay, HalGPIO, HalStorage)
   * lib/I18n/: Internationalization (translations in `translations/*.yaml`, generated string tables)
 * src/activities/: UI logic using the Activity Lifecycle (onEnter, loop, onExit)
-* open-x4-sdk/: Low-level SDK (EInkDisplay, InputManager, BatteryMonitor, SDCardManager)
 * .crosspoint/: SD-based binary cache for EPUB metadata and pre-rendered layout sections
 
 ### Hardware Abstraction Layer (HAL)
 
-**CRITICAL**: Always use HAL classes, NOT SDK classes directly.
+**CRITICAL**: Always use HAL classes for hardware access.
 
-| HAL Class | Wraps SDK Class | Purpose | Singleton Macro |
-|-----------|----------------|---------|-----------------|
-| `HalDisplay` | `EInkDisplay` | E-ink display control | *(none)* |
-| `HalGPIO` | `InputManager` | Button input handling | *(none)* |
-| `HalStorage` | `SDCardManager` | SD card file I/O | `Storage` |
+| HAL Class | Purpose | Singleton Macro |
+|-----------|---------|-----------------|
+| `HalDisplay` | E-ink display control (EPD_Painter) | *(none)* |
+| `HalGPIO` | Touch input handling (GT911) | *(none)* |
+| `HalTouch` | GT911 capacitive touch I2C driver | *(none)* |
+| `HalStorage` | SD card file I/O (SdFat) | `Storage` |
+| `HalPowerManager` | Battery, sleep, CPU power (AXP2101) | `powerManager` |
 
 **Location**: [lib/hal/](../lib/hal/)
 
@@ -166,10 +164,10 @@ if (Storage.openFileForRead("MODULE", "/path/to/file.bin", file)) {
 * Use #pragma once for all header files.
 
 ### Memory Safety and RAII
-* Smart Pointers: Prefer std::unique_ptr. Avoid std::shared_ptr (unnecessary atomic overhead for a single-core RISC-V).
+* Smart Pointers: Prefer std::unique_ptr. std::shared_ptr is acceptable on ESP32-S3 (dual-core Xtensa) when shared ownership is genuinely needed.
 * RAII: Use destructors for cleanup, but call file.close() or vTaskDelete() explicitly for deterministic resource release.
 
-### ESP32-C3 Platform Pitfalls
+### ESP32-S3 Platform Pitfalls
 
 #### `std::string_view` and Null Termination
 `string_view` is *not* null-terminated. Passing `.data()` to any C-style API (`drawText`, `snprintf`, `strcmp`, SdFat file paths) is undefined behaviour when the view is a substring or a view of a non-null-terminated buffer.
@@ -213,14 +211,11 @@ static DRAM_ATTR uint32_t isrEventFlags = 0;
 | Task → task | `xSemaphoreTake()` / mutex |
 | Simple flag (single writer ISR) | `volatile bool` + `portENTER_CRITICAL_ISR()` |
 
-#### RISC-V Alignment
-ESP32-C3 faults on unaligned multi-byte loads. Never cast a `uint8_t*` buffer to a wider pointer type and dereference it directly. Use `memcpy` for any unaligned read:
+#### Unaligned Access
+While ESP32-S3 (Xtensa) is more tolerant of unaligned access than ESP32-C3 (RISC-V), it is still best practice to use `memcpy` for unaligned reads to avoid subtle performance penalties:
 
 ```cpp
-// WRONG — faults if buf is not 4-byte aligned:
-uint32_t val = *reinterpret_cast<const uint32_t*>(buf);
-
-// CORRECT:
+// Prefer memcpy for buffer-to-type casting:
 uint32_t val;
 memcpy(&val, buf, sizeof(val));
 ```
@@ -300,37 +295,26 @@ buffer = nullptr;
 ## UI and Orientation Guidelines
 
 ### Orientation-Aware Logic
-* No Hardcoding: Never assume 800 or 480. Use renderer.getScreenWidth() and renderer.getScreenHeight().
+* No Hardcoding: Never assume 960 or 540. Use renderer.getScreenWidth() and renderer.getScreenHeight().
 * Viewable Area: Use renderer.getOrientedViewableTRBL() to stay within physical bezel margins.
 
-### Logical Button Mapping
+### Touch Input Mapping
 
-**Source**: [src/MappedInputManager.cpp:20-55](../src/MappedInputManager.cpp)
+The M5PaperS3 has no physical buttons — all input is via capacitive touch (GT911).
 
-Constraint: Physical button positions are fixed on hardware, but their logical functions change based on user settings and screen orientation.
-
-**Button Categories**:
-1. **Physical Fixed** (Up/Down side buttons):
-   - `Button::Up` → Always `HalGPIO::BTN_UP`
-   - `Button::Down` → Always `HalGPIO::BTN_DOWN`
-
-2. **User Remappable** (Front buttons):
-   - `Button::Back` → Maps to `SETTINGS.frontButtonBack` (hardware index)
-   - `Button::Confirm` → Maps to `SETTINGS.frontButtonConfirm`
-   - `Button::Left` → Maps to `SETTINGS.frontButtonLeft`
-   - `Button::Right` → Maps to `SETTINGS.frontButtonRight`
-
-3. **Reader-Specific** (Page navigation with optional swap):
-   - `Button::PageBack` → Uses side button (swappable via `SETTINGS.sideButtonLayout`)
-   - `Button::PageForward` → Uses side button (swappable)
+**Touch Zones** (defined in `HalGPIO.cpp`):
+- Screen is split into 3 vertical zones in portrait (540x960): Left (0-180), Center (180-360), Right (360-540)
+- Left zone → `BTN_LEFT`, Center → `BTN_CONFIRM`, Right → `BTN_RIGHT`
+- Footer nav bar (when active): 4 equal tap zones for Back / Confirm / Up / Down
+- Swipe up/down for page navigation in reader
+- 2-finger tap → Back (reader only)
 
 **Implementation**:
 - Activities use **logical buttons** (e.g., `Button::Confirm`)
-- `MappedInputManager` translates to **physical hardware buttons**
-- User can remap front buttons in settings
-- Orientation changes handled separately by renderer coordinate transforms
+- `MappedInputManager` translates touch zones to logical buttons
+- `HalGPIO` handles touch debouncing, gesture detection, and zone mapping
 
-**Rule**: Always use `MappedInputManager::Button::*` enums, never raw `HalGPIO::BTN_*` indices (except in ButtonRemapActivity).
+**Rule**: Always use `MappedInputManager::Button::*` enums, never raw `HalGPIO::BTN_*` indices.
 
 ### UITheme (The GUI Macro)
 * Rule: All UI rendering must go through the GUI macro (UITheme). 
@@ -869,4 +853,4 @@ struct PageLine {
 
 ---
 
-Philosophy: We are building a dedicated e-reader, not a Swiss Army knife. If a feature adds RAM pressure without significantly improving the reading experience, it is Out of Scope.
+Philosophy: We are building a dedicated e-reader, not a Swiss Army knife. If a feature does not significantly improve the reading experience, it is Out of Scope.

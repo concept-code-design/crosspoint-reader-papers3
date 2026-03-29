@@ -12,7 +12,7 @@ namespace obfuscation {
 namespace {
 constexpr size_t HW_KEY_LEN = 6;
 
-// Simple lazy init — no thread-safety concern on single-core ESP32-C3.
+// Simple lazy init — safe because getHwKey() is only called from the main task.
 const uint8_t* getHwKey() {
   static uint8_t key[HW_KEY_LEN] = {};
   static bool initialized = false;

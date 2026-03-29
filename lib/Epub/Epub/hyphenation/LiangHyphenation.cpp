@@ -45,7 +45,7 @@
  *       etc.
  *
  * Keeping the entire algorithm small and deterministic is critical on the
- * ESP32-C3: we avoid recursion, dynamic allocations per node, or copying the
+ * ESP32: we avoid recursion, dynamic allocations per node, or copying the
  * trie. All lookups stay within the generated blob, which lives in flash, and
  * the working buffers (augmented bytes/scores) scale with the word length rather
  * than the pattern corpus.

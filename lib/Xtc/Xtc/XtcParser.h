@@ -22,7 +22,7 @@ namespace xtc {
  * XTC File Parser
  *
  * Reads XTC files from SD card and extracts page data.
- * Designed for ESP32-C3's limited RAM (~380KB) using streaming.
+ * Designed for embedded use with streaming to minimize RAM usage.
  */
 class XtcParser {
  public:

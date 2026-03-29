@@ -31,7 +31,7 @@ struct JpegContext {
   int dstWidth;
   int dstHeight;
 
-  // Fine scale in 16.16 fixed-point (ESP32-C3 has no FPU)
+  // Fine scale in 16.16 fixed-point (avoids float for deterministic rounding)
   int32_t fineScaleFP;  // src -> dst mapping
   int32_t invScaleFP;   // dst -> src mapping
 
@@ -117,7 +117,7 @@ int chooseJpegScale(float targetScale, int& jpegScaleOption) {
   return 1;
 }
 
-// Fixed-point 16.16 arithmetic avoids software float emulation on ESP32-C3 (no FPU).
+// Fixed-point 16.16 arithmetic for deterministic pixel-exact scaling.
 constexpr int FP_SHIFT = 16;
 constexpr int32_t FP_ONE = 1 << FP_SHIFT;
 constexpr int32_t FP_MASK = FP_ONE - 1;

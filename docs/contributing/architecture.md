@@ -1,6 +1,6 @@
 # Architecture Overview
 
-CrossPoint is firmware for the Xteink X4 (unaffiliated with Xteink), built with PlatformIO targeting the ESP32-C3 microcontroller.
+CrossPoint is firmware for the M5Stack Paper S3, built with PlatformIO targeting the ESP32-S3 microcontroller.
 
 At a high level, it is firmware that uses an activity-driven application architecture loop with persistent settings/state, SD-card-first caching, and a rendering pipeline optimized for e-ink constraints.
 
@@ -8,7 +8,7 @@ At a high level, it is firmware that uses an activity-driven application archite
 
 ```mermaid
 graph TD
-    A[Hardware: ESP32-C3 + SD + E-ink + Buttons] --> B[open-x4-sdk HAL]
+    A[Hardware: ESP32-S3 + SD + E-ink + Touch] --> B[lib/hal HAL layer]
     B --> C[src/main.cpp runtime loop]
     C --> D[Activities layer]
     C --> E[State and settings]
@@ -81,7 +81,7 @@ flowchart LR
 
 Why caching matters:
 
-- RAM is limited on ESP32-C3, so expensive parsed/layout data is persisted to SD
+- Expensive parsed/layout data is persisted to SD to keep page turns responsive
 - repeat opens/page navigation can reuse cached data instead of full reparsing
 
 ## Reader internals call graph
@@ -122,7 +122,7 @@ flowchart TD
 Notes:
 
 - "section cache exists" depends on cache-busting parameters such as font and layout-related settings
-- rendering favors reusing precomputed layout data to keep page turns responsive on constrained hardware
+- rendering favors reusing precomputed layout data to keep page turns responsive
 - progress/session state is persisted so the reader can reopen at the last position after reboot/sleep
 
 ## State and persistence
@@ -181,12 +181,12 @@ When editing related source assets, regenerate via normal build steps/scripts.
 - `src/components/`: theming and shared UI components
 - `lib/Epub/`: EPUB parser, layout, CSS handling, and hyphenation
 - `lib/`: supporting libraries (fonts, text, filesystem helpers, etc.)
-- `open-x4-sdk/`: hardware SDK submodule (display, input, storage, battery)
+- `lib/hal/`: hardware abstraction layer (display, touch, storage, power)
 - `docs/`: user and technical documentation
 
 ## Embedded constraints that shape design
 
-- constrained RAM drives SD-first caching and careful allocations
+- SD-first caching keeps page turns responsive and avoids re-parsing
 - e-ink refresh cost drives render/update batching choices
 - main loop responsiveness matters for input, power handling, and watchdog safety
 - background/network flows must cooperate with sleep and loop timing logic

@@ -1,7 +1,7 @@
 # Project Governance & Community Principles
 
 CrossPoint Reader is a community-driven, open-source project. Our goal is to provide a high-quality, open-source
-firmware alternative for the Xteink X4 hardware. To keep this project productive and welcoming as we grow, we ask all
+firmware alternative for the M5Stack Paper S3 hardware. To keep this project productive and welcoming as we grow, we ask all
 contributors to follow these principles.
 
 ### 1. The "Human First" Rule
@@ -20,7 +20,7 @@ CrossPoint thrives because people step up to build what they want to see.
 - If you want to report a bug, check for duplicates and create an
   [Issue](https://github.com/crosspoint-reader/crosspoint-reader/issues).
 - While we encourage experimentation, the maintainers reserve the right to guide the project’s technical direction to
-  ensure stability on the ESP32-C3’s constrained hardware.
+  ensure stability on the ESP32-S3 hardware.
 - For more guidance on the scope of the project, see the [SCOPE.md](SCOPE.md) document.
 
 ### 3. Transparent Communication

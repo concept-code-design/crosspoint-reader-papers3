@@ -59,7 +59,6 @@ class ActivityManager {
   SemaphoreHandle_t renderingMutex = nullptr;
 
   // Spinlock for taskENTER_CRITICAL on dual-core ESP32-S3
-  // (ESP32-C3 single-core accepted nullptr; S3 requires a valid portMUX_TYPE)
   portMUX_TYPE criticalMux = portMUX_INITIALIZER_UNLOCKED;
 
   // Whether to trigger a render after the current loop()

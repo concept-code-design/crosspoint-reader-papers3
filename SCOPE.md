@@ -1,11 +1,11 @@
 # Project Vision & Scope: CrossPoint Reader
 
-The goal of CrossPoint Reader is to create an efficient, open-source reading experience for the Xteink X4. We believe a
+The goal of CrossPoint Reader is to create an efficient, open-source reading experience for the M5Stack Paper S3. We believe a
 dedicated e-reader should do one thing exceptionally well: **facilitate focused reading.**
 
 ## 1. Core Mission
 
-To provide a lightweight, high-performance firmware that maximizes the potential of the X4, prioritizing legibility and
+To provide a lightweight, high-performance firmware that maximizes the potential of the Paper S3, prioritizing legibility and
 usability over "swiss-army-knife" functionality.
 
 ## 2. Scope
@@ -43,7 +43,7 @@ usability over "swiss-army-knife" functionality.
 
 *These features align with CrossPoint's goals but are impractical on the current hardware or produce poor UX.*
 
-* **Clock Display:** The ESP32-C3's RTC drifts significantly during deep sleep; making the clock untrustworthy after any sleep cycle. NTP sync could help, but CrossPoint doesn't connect to the internet on every boot.
+* **Clock Display:** The BM8563 RTC on M5PaperS3 drifts during deep sleep; making the clock untrustworthy after extended sleep cycles. NTP sync could help, but CrossPoint doesn't connect to the internet on every boot.
 
 * **PDF Rendering:** PDFs are fixed-layout documents, so rendering them requires displaying pages as images rather than reflowable text — resulting in constant panning and zooming that makes for a poor reading experience on e-ink.
 
