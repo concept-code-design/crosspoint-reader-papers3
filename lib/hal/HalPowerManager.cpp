@@ -2,19 +2,20 @@
 
 #include <Logging.h>
 #include <WiFi.h>
-#include <Wire.h>
 #include <esp_sleep.h>
 
 #include <cassert>
 
 #include "HalGPIO.h"
 
-// AXP2101 PMIC I2C address and battery registers
-static constexpr uint8_t AXP2101_ADDR = 0x34;
-static constexpr uint8_t AXP2101_REG_BATTERY_PERCENT = 0xA4;  // SOC (State of Charge) 0-100
-
 // M5PaperS3 power-off pulse pin (active-high pulse turns off PMIC)
 static constexpr int PWROFF_PULSE_PIN = 44;
+
+// M5PaperS3 battery voltage ADC pin (hardware voltage divider, ~2.04x ratio)
+static constexpr int BAT_ADC_PIN = 3;
+static constexpr int BAT_ADC_SAMPLES = 16;         // Number of ADC samples to average
+static constexpr uint16_t BAT_HYSTERESIS_MV = 30;  // Only update if voltage changed by ≥30mV (~3%)
+static uint16_t lastBattMv = 0;                     // Cached smoothed voltage
 
 HalPowerManager powerManager;  // Singleton instance
 
@@ -22,6 +23,13 @@ void HalPowerManager::begin() {
   normalFreq = getCpuFrequencyMhz();
   modeMutex = xSemaphoreCreateMutex();
   assert(modeMutex != nullptr);
+
+#if CROSSPOINT_PAPERS3
+  // Battery voltage is read via ADC on GPIO 3 (hardware voltage divider).
+  // analogReadMilliVolts() handles ESP32-S3 ADC calibration internally.
+  pinMode(BAT_ADC_PIN, INPUT);
+  analogSetAttenuation(ADC_11db);
+#endif
 }
 
 void HalPowerManager::setPowerSaving(bool enabled) {
@@ -90,21 +98,25 @@ void HalPowerManager::startDeepSleep(HalGPIO& gpio) const {
 
 uint16_t HalPowerManager::getBatteryPercentage() const {
 #if CROSSPOINT_PAPERS3
-  // Read battery SOC from AXP2101 PMIC via Wire1 (shared with GT911 touch).
-  // Both callers run on the main loop task so no bus contention.
-  Wire1.beginTransmission(AXP2101_ADDR);
-  Wire1.write(AXP2101_REG_BATTERY_PERCENT);
-  if (Wire1.endTransmission(false) != 0) {
-    LOG_ERR("PWR", "AXP2101 I2C write failed");
-    return 0;
+  // Average multiple ADC samples to reduce noise (ESP32-S3 ADC jitters ~20-50mV).
+  uint32_t sum = 0;
+  for (int i = 0; i < BAT_ADC_SAMPLES; i++) {
+    sum += analogReadMilliVolts(BAT_ADC_PIN);
   }
-  if (Wire1.requestFrom(AXP2101_ADDR, (uint8_t)1) != 1) {
-    LOG_ERR("PWR", "AXP2101 I2C read failed");
-    return 0;
+  const uint16_t adcMv = (uint16_t)(sum / BAT_ADC_SAMPLES);
+  const uint16_t battMv = (uint16_t)((adcMv * 204) / 100);
+
+  // Hysteresis: only update cached voltage if change exceeds threshold.
+  // Prevents percentage from flickering between adjacent values.
+  if (lastBattMv == 0 || abs((int)battMv - (int)lastBattMv) >= BAT_HYSTERESIS_MV) {
+    lastBattMv = battMv;
   }
-  uint8_t soc = Wire1.read();
-  if (soc > 100) soc = 100;
-  return soc;
+  LOG_DBG("PWR", "Battery ADC=%umV  VBAT=%umV (cached=%umV)", adcMv, battMv, lastBattMv);
+
+  // Li-Po linear approximation: 4200mV = 100%, 3300mV = 0%
+  if (lastBattMv >= 4200) return 100;
+  if (lastBattMv <= 3300) return 0;
+  return (uint16_t)((lastBattMv - 3300) * 100 / 900);
 #else
   return 100;
 #endif
