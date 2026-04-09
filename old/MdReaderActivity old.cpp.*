@@ -25,6 +25,18 @@ constexpr uint8_t  CACHE_VERSION = 2;           // bumped: DisplayLine now uses 
 
 constexpr int HEADING_VSPACE = 4;   // extra px above H1/H2/H3
 constexpr int LIST_VSPACE    = 1;   // extra px above first list-item line
+
+// Maps the inline style bitmask (BOLD / ITALIC / CODE flags) to the
+// EpdFontFamily::Style parameter expected by GfxRenderer draw calls.
+// CODE is rendered in the mono font but with REGULAR weight.
+EpdFontFamily::Style resolveStyle(uint8_t style) {
+  const bool bold   = style & 0x01;  // MdReaderActivity::BOLD
+  const bool italic = style & 0x02;  // MdReaderActivity::ITALIC
+  if (bold && italic) return EpdFontFamily::BOLD_ITALIC;
+  if (bold)           return EpdFontFamily::BOLD;
+  if (italic)         return EpdFontFamily::ITALIC;
+  return EpdFontFamily::REGULAR;
+}
 }  // namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,11 +104,8 @@ void MdReaderActivity::loop() {
 void MdReaderActivity::initializeReader() {
   if (initialized) return;
 
-  cachedBodyFontId       = SETTINGS.getReaderFontId();
-  cachedBoldFontId       = SETTINGS.getReaderBoldFontId();
-  cachedItalicFontId     = SETTINGS.getReaderItalicFontId();
-  cachedBoldItalicFontId = SETTINGS.getReaderBoldItalicFontId();
-  cachedMonoFontId       = SETTINGS.getReaderMonoFontId();
+  cachedBodyFontId = SETTINGS.getReaderFontId();
+  cachedMonoFontId = UI_12_FONT_ID;
   cachedH1FontId         = NOTOSANS_18_FONT_ID;
   cachedH2FontId         = NOTOSANS_16_FONT_ID;
   cachedH3FontId         = NOTOSANS_14_FONT_ID;
@@ -317,10 +326,7 @@ int MdReaderActivity::resolveFontId(BlockType block, uint8_t style) const {
     case BlockType::H2: return cachedH2FontId;
     case BlockType::H3: return cachedH3FontId;
     default:
-      if (style & CODE)                        return cachedMonoFontId;
-      if ((style & BOLD) && (style & ITALIC))  return cachedBoldItalicFontId;
-      if (style & BOLD)                        return cachedBoldFontId;
-      if (style & ITALIC)                      return cachedItalicFontId;
+      if (style & CODE) return cachedMonoFontId;
       return cachedBodyFontId;
   }
 }
@@ -347,7 +353,7 @@ int MdReaderActivity::runsWidth(const std::vector<InlineRun>& runs, BlockType bl
   int total = 0;
   for (const auto& r : runs) {
     if (!r.text.empty()) {
-      total += renderer.getTextWidth(resolveFontId(block, r.style), r.text.c_str());
+      total += renderer.getTextWidth(resolveFontId(block, r.style), r.text.c_str(), resolveStyle(r.style));
     }
   }
   return total;
@@ -594,7 +600,7 @@ void MdReaderActivity::renderPage() {
       // For simplicity (and consistency with linesPerPage budget) we use
       // the block's heading font for heading lines, body otherwise.
       const int lineH  = renderer.getLineHeight(
-          resolveFontId(line.block, line.runs.empty() ? REGULAR : line.runs[0].style));
+          resolveFontId(line.block, line.runs.empty() ? NORMAL : line.runs[0].style));
       const int indent = resolveIndent(line.block);
       const int x0     = cachedOrientedMarginLeft + indent;
 
@@ -656,8 +662,9 @@ void MdReaderActivity::renderPage() {
         for (const auto& run : line.runs) {
           if (run.text.empty()) continue;
           const int fontId = resolveFontId(line.block, run.style);
-          renderer.drawText(fontId, drawX, y, run.text.c_str());
-          drawX += renderer.getTextWidth(fontId, run.text.c_str());
+          const EpdFontFamily::Style fStyle = resolveStyle(run.style);
+          renderer.drawText(fontId, drawX, y, run.text.c_str(), true, fStyle);
+          drawX += renderer.getTextWidth(fontId, run.text.c_str(), fStyle);
         }
       }
 
