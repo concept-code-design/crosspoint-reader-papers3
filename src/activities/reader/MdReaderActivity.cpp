@@ -106,9 +106,26 @@ void MdReaderActivity::initializeReader() {
 
   cachedBodyFontId = SETTINGS.getReaderFontId();
   cachedMonoFontId = UI_12_FONT_ID;
-  cachedH1FontId         = NOTOSANS_18_FONT_ID;
-  cachedH2FontId         = NOTOSANS_16_FONT_ID;
-  cachedH3FontId         = NOTOSANS_14_FONT_ID;
+//  FONT_FAMILY { BOOKERLY = 0, NOTOSANS = 1, OPENDYSLEXIC = 2, FONT_FAMILY_COUNT };
+  switch (SETTINGS.fontFamily){
+    case 0: // BOOKERLY
+      cachedH1FontId         = BOOKERLY_18_FONT_ID;
+      cachedH2FontId         = BOOKERLY_16_FONT_ID;
+      cachedH3FontId         = BOOKERLY_14_FONT_ID;
+      break;
+    case 1: // NOTOSANS
+    default:
+      cachedH1FontId         = NOTOSANS_18_FONT_ID;
+      cachedH2FontId         = NOTOSANS_16_FONT_ID;
+      cachedH3FontId         = NOTOSANS_14_FONT_ID;
+      break;
+    case 2: // OPENDYSLEXIC
+      cachedH1FontId         = OPENDYSLEXIC_14_FONT_ID;
+      cachedH2FontId         = OPENDYSLEXIC_12_FONT_ID;
+      cachedH3FontId         = OPENDYSLEXIC_10_FONT_ID;
+      break;
+  }
+
   cachedScreenMargin       = SETTINGS.screenMargin;
   cachedParagraphAlignment = SETTINGS.paragraphAlignment;
 
