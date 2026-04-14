@@ -77,6 +77,32 @@ void SettingsActivity::loop() {
 
   // Handle actions with early return
 #if CROSSPOINT_PAPERS3
+  // During a hold, track finger position so the gray bar follows the touched item.
+  if (mappedInput.isPressed(MappedInputManager::Button::Confirm) ||
+      mappedInput.isPressed(MappedInputManager::Button::Left) ||
+      mappedInput.isPressed(MappedInputManager::Button::Right)) {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int tabTop = metrics.topPadding + metrics.headerHeight;
+    const int tabBottom = tabTop + metrics.tabBarHeight;
+    const int listTop = tabBottom + metrics.verticalSpacing;
+    const int rowHeight = metrics.listRowHeight;
+
+    int newIndex = selectedSettingIndex;
+    if (touchY >= tabTop && touchY < tabBottom) {
+      newIndex = 0;
+    } else if (touchY >= listTop) {
+      const int tappedRow = (touchY - listTop) / rowHeight;
+      if (tappedRow >= 0 && tappedRow < settingsCount) {
+        newIndex = tappedRow + 1;
+      }
+    }
+    if (newIndex != selectedSettingIndex) {
+      selectedSettingIndex = newIndex;
+      requestUpdate();
+    }
+  }
+
   if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to tab bar or settings item
     {

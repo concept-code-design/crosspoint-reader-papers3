@@ -179,17 +179,59 @@ void HomeActivity::freeCoverBuffer() {
 void HomeActivity::loop() {
   const int menuCount = getMenuItemCount();
 
-  buttonNavigator.onNext([this, menuCount] {
+#if CROSSPOINT_PAPERS3
+  // On touch devices ButtonNavigator continuous scroll must not run — holding a
+  // touch zone (Right/Down) would advance selectorIndex every 500 ms until it
+  // lands on the last item, making the gray bar appear over the wrong entry.
+  // Use press-only (no continuous) for physical-button fallback navigation.
+  buttonNavigator.onNextPress([this, menuCount] {
     selectorIndex = ButtonNavigator::nextIndex(selectorIndex, menuCount);
     requestUpdate();
   });
 
-  buttonNavigator.onPrevious([this, menuCount] {
+  buttonNavigator.onPreviousPress([this, menuCount] {
     selectorIndex = ButtonNavigator::previousIndex(selectorIndex, menuCount);
     requestUpdate();
   });
 
-#if CROSSPOINT_PAPERS3
+  // During a hold, keep selectorIndex in sync with the finger position so the
+  // gray bar tracks the touched item rather than drifting to the last entry.
+  if (mappedInput.isPressed(MappedInputManager::Button::Confirm) ||
+      mappedInput.isPressed(MappedInputManager::Button::Left) ||
+      mappedInput.isPressed(MappedInputManager::Button::Right)) {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int coverTop = metrics.homeTopPadding;
+    const int coverBottom = coverTop + metrics.homeCoverTileHeight;
+    const int menuTop = coverBottom + metrics.verticalSpacing;
+    const int itemHeight = metrics.menuRowHeight + metrics.menuSpacing;
+
+    int newIndex = selectorIndex;
+    if (!recentBooks.empty() && touchY >= coverTop && touchY < coverBottom) {
+      const int numCovers = std::min(static_cast<int>(recentBooks.size()), metrics.homeRecentBooksCount);
+      if (numCovers > 1) {
+        const int16_t touchX = mappedInput.getTouchX();
+        const int tileWidth = (renderer.getScreenWidth() - 2 * metrics.contentSidePadding) / numCovers;
+        int coverIdx = (touchX - metrics.contentSidePadding) / tileWidth;
+        if (coverIdx < 0) coverIdx = 0;
+        if (coverIdx >= numCovers) coverIdx = numCovers - 1;
+        newIndex = coverIdx;
+      } else {
+        newIndex = 0;
+      }
+    } else if (touchY >= menuTop) {
+      const int menuIdx = (touchY - menuTop) / itemHeight;
+      const int totalMenuItems = menuCount - static_cast<int>(recentBooks.size());
+      if (menuIdx >= 0 && menuIdx < totalMenuItems) {
+        newIndex = static_cast<int>(recentBooks.size()) + menuIdx;
+      }
+    }
+    if (newIndex != selectorIndex) {
+      selectorIndex = newIndex;
+      requestUpdate();
+    }
+  }
+
   if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to the tapped item directly
     const auto& metrics = UITheme::getInstance().getMetrics();
@@ -219,6 +261,16 @@ void HomeActivity::loop() {
       }
     }
 #else
+  buttonNavigator.onNext([this, menuCount] {
+    selectorIndex = ButtonNavigator::nextIndex(selectorIndex, menuCount);
+    requestUpdate();
+  });
+
+  buttonNavigator.onPrevious([this, menuCount] {
+    selectorIndex = ButtonNavigator::previousIndex(selectorIndex, menuCount);
+    requestUpdate();
+  });
+
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
 #endif
     // Execute action for current selectorIndex

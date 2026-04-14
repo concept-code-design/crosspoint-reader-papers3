@@ -614,8 +614,10 @@ void MdReaderActivity::render(RenderLock&&) {
 void MdReaderActivity::renderPage() {
   auto renderLines = [&]() {
     int y = cachedOrientedMarginTop;
+    const int n = static_cast<int>(currentPageLines.size());
 
-    for (const auto& line : currentPageLines) {
+    for (int li = 0; li < n; li++) {
+      const auto& line = currentPageLines[li];
       // The line height is driven by the tallest font among the runs.
       // For simplicity (and consistency with linesPerPage budget) we use
       // the block's heading font for heading lines, body otherwise.
@@ -623,6 +625,14 @@ void MdReaderActivity::renderPage() {
           resolveFontId(line.block, line.runs.empty() ? NORMAL : line.runs[0].style));
       const int indent = resolveIndent(line.block);
       const int x0     = cachedOrientedMarginLeft + indent;
+
+      // Blank lines adjacent to an HRule get halved so the rule sits tight.
+      const bool nextIsHRule = (li + 1 < n) && (currentPageLines[li + 1].block == BlockType::HRule);
+      const bool prevIsHRule = (li > 0)     && (currentPageLines[li - 1].block == BlockType::HRule);
+      if (line.block == BlockType::Text && line.runs.empty() && (nextIsHRule || prevIsHRule)) {
+        y += lineH / 2;
+        continue;
+      }
 
       // Extra space before the first line of certain blocks
       if (line.isFirstInBlock) {
@@ -640,12 +650,13 @@ void MdReaderActivity::renderPage() {
         }
       }
 
-      // HRule
+      // HRule — use half the normal line height so surrounding space is compact
       if (line.block == BlockType::HRule) {
-        const int ry = y + lineH / 2;
+        const int halfH = lineH / 2;
+        const int ry    = y + halfH / 2;
         renderer.drawLine(cachedOrientedMarginLeft, ry,
                           cachedOrientedMarginLeft + viewportWidth, ry, 2, 3);
-        y += lineH;
+        y += halfH;
         continue;
       }
 

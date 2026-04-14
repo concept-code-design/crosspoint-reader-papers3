@@ -32,6 +32,23 @@ void NetworkModeSelectionActivity::loop() {
 
   // Handle confirm button - select current option
 #if CROSSPOINT_PAPERS3
+  // During a hold, track finger position so the gray bar follows the touched item.
+  if (mappedInput.isPressed(MappedInputManager::Button::Confirm) ||
+      mappedInput.isPressed(MappedInputManager::Button::Left) ||
+      mappedInput.isPressed(MappedInputManager::Button::Right)) {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
+    const int rowHeight = metrics.listWithSubtitleRowHeight;
+    if (touchY >= contentTop) {
+      const int tappedRow = (touchY - contentTop) / rowHeight;
+      if (tappedRow >= 0 && tappedRow < MENU_ITEM_COUNT && tappedRow != selectedIndex) {
+        selectedIndex = tappedRow;
+        requestUpdate();
+      }
+    }
+  }
+
   if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to menu item
     const auto& metrics = UITheme::getInstance().getMetrics();
@@ -57,7 +74,19 @@ void NetworkModeSelectionActivity::loop() {
     return;
   }
 
-  // Handle navigation
+  // Handle navigation — press-only on touch devices to avoid continuous scroll
+  // advancing selectedIndex during a hold and showing the wrong highlighted row.
+#if CROSSPOINT_PAPERS3
+  buttonNavigator.onNextPress([this] {
+    selectedIndex = ButtonNavigator::nextIndex(selectedIndex, MENU_ITEM_COUNT);
+    requestUpdate();
+  });
+
+  buttonNavigator.onPreviousPress([this] {
+    selectedIndex = ButtonNavigator::previousIndex(selectedIndex, MENU_ITEM_COUNT);
+    requestUpdate();
+  });
+#else
   buttonNavigator.onNext([this] {
     selectedIndex = ButtonNavigator::nextIndex(selectedIndex, MENU_ITEM_COUNT);
     requestUpdate();
@@ -67,6 +96,7 @@ void NetworkModeSelectionActivity::loop() {
     selectedIndex = ButtonNavigator::previousIndex(selectedIndex, MENU_ITEM_COUNT);
     requestUpdate();
   });
+#endif
 }
 
 void NetworkModeSelectionActivity::render(RenderLock&&) {

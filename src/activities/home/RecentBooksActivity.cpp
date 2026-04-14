@@ -48,6 +48,27 @@ void RecentBooksActivity::loop() {
   const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, true);
 
 #if CROSSPOINT_PAPERS3
+  // During a hold, track finger position so the gray bar follows the touched item.
+  if (!recentBooks.empty() &&
+      (mappedInput.isPressed(MappedInputManager::Button::Confirm) ||
+       mappedInput.isPressed(MappedInputManager::Button::Left) ||
+       mappedInput.isPressed(MappedInputManager::Button::Right))) {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
+    const int rowHeight = metrics.listWithSubtitleRowHeight;
+    if (touchY >= contentTop) {
+      const int page = selectorIndex / pageItems;
+      const int tappedRow = (touchY - contentTop) / rowHeight;
+      const int tappedIndex = page * pageItems + tappedRow;
+      if (tappedIndex >= 0 && tappedIndex < static_cast<int>(recentBooks.size()) &&
+          tappedIndex != selectorIndex) {
+        selectorIndex = tappedIndex;
+        requestUpdate();
+      }
+    }
+  }
+
   if (mappedInput.wasTapped()) {
     // Tap-to-select: map touch Y to list item
     const auto& metrics = UITheme::getInstance().getMetrics();

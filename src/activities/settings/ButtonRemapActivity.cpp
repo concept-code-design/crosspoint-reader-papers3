@@ -86,6 +86,9 @@ void ButtonRemapActivity::loop() {
       // All roles assigned; save to settings and exit.
       applyTempMapping();
       SETTINGS.saveToFile();
+      // Flush the press that completed the mapping so it doesn't leak into
+      // the returning activity as a logical Back/Confirm event under the new mapping.
+      mappedInput.clearState();
       finish();
       return;
     }
