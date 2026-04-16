@@ -72,7 +72,6 @@ void EpubReaderActivity::onEnter() {
     if (dataSize == 6) {
       cachedChapterTotalPageCount = data[4] + (data[5] << 8);
     }
-    f.close();
   }
   if (isFirstOpen) {
     int textSpineIndex = epub->getSpineIndexForTextReference();
@@ -709,7 +708,6 @@ void EpubReaderActivity::saveProgress(int spineIndex, int currentPage, int pageC
     data[4] = pageCount & 0xFF;
     data[5] = (pageCount >> 8) & 0xFF;
     f.write(data, 6);
-    f.close();
     LOG_DBG("ERS", "Progress saved: Chapter %d, Page %d", spineIndex, currentPage);
   } else {
     LOG_ERR("ERS", "Could not save progress!");

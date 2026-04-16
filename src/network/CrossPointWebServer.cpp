@@ -1218,6 +1218,7 @@ void CrossPointWebServer::onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* 
       LOG_DBG("WS", "Client %u disconnected", num);
       // Clean up any in-progress upload
       if (wsUploadInProgress && wsUploadFile) {
+        // Explicit close() required: file-scope global persists beyond function scope
         wsUploadFile.close();
         // Delete incomplete file
         String filePath = wsUploadPath;
@@ -1301,6 +1302,7 @@ void CrossPointWebServer::onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* 
       esp_task_wdt_reset();
 
       if (written != length) {
+        // Explicit close() required: file-scope global persists beyond function scope
         wsUploadFile.close();
         wsUploadInProgress = false;
         wsServer->sendTXT(num, "ERROR:Write failed - disk full?");
@@ -1319,6 +1321,7 @@ void CrossPointWebServer::onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* 
 
       // Check if upload complete
       if (wsUploadReceived >= wsUploadSize) {
+        // Explicit close() required: file-scope global persists beyond function scope
         wsUploadFile.close();
         wsUploadInProgress = false;
 
