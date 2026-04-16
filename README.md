@@ -55,6 +55,32 @@ cd crosspoint-reader-papers3
 pio run --target upload
 ```
 
+### Command line (specific firmware version)
+
+1. Install [`esptool`](https://github.com/espressif/esptool):
+
+   ```sh
+   pip install esptool
+   ```
+
+2. Download the `firmware.bin` file from the release of your choice via the [releases page](https://github.com/crosspoint-reader/crosspoint-reader/releases).
+
+3. Connect your M5Paper S3 to your computer via USB-C.
+
+4. Note the device location. On Linux, run `dmesg` after connecting. On macOS, run:
+
+   ```sh
+   log stream --predicate 'subsystem == "com.apple.iokit"' --info
+   ```
+
+5. Flash the firmware:
+
+   ```sh
+   esptool.py --chip esp32c3 --port /dev/ttyACM0 --baud 921600 write_flash 0x10000 /path/to/firmware.bin
+   ```
+
+   Change `/dev/ttyACM0` to the device for your system.
+
 ### Serial Monitor
 
 ```sh
