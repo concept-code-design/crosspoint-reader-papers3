@@ -18,6 +18,7 @@ class OpdsBookBrowserActivity final : public Activity {
   enum class BrowserState {
     CHECK_WIFI,      // Checking WiFi connection
     WIFI_SELECTION,  // WiFi selection subactivity is active
+    SEARCH_INPUT,    // Search keyboard subactivity is active
     LOADING,         // Fetching OPDS feed
     BROWSING,        // Displaying entries (navigation or books)
     DOWNLOADING,     // Downloading selected EPUB
@@ -38,14 +39,19 @@ class OpdsBookBrowserActivity final : public Activity {
   std::vector<OpdsEntry> entries;
   std::vector<std::string> navigationHistory;  // Stack of previous feed paths for back navigation
   std::string currentPath;                     // Current feed path being displayed
+  std::string searchTemplate;
   int selectorIndex = 0;
   std::string errorMessage;
   std::string statusMessage;
   size_t downloadProgress = 0;
   size_t downloadTotal = 0;
+  bool consumeConfirm = false;
+  bool consumeBack = false;
 
   void checkAndConnectWifi();
   void launchWifiSelection();
+  void launchSearch();
+  void performSearch(const std::string& query);
   void onWifiSelectionComplete(bool connected);
   void fetchFeed(const std::string& path);
   void navigateToEntry(const OpdsEntry& entry);

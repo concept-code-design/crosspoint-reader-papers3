@@ -78,6 +78,9 @@ bool OpdsParser::error() const { return errorOccured; }
 
 void OpdsParser::clear() {
   entries.clear();
+  searchTemplate.clear();
+  nextPageUrl.clear();
+  prevPageUrl.clear();
   currentEntry = OpdsEntry{};
   currentText.clear();
   inEntry = false;
@@ -108,6 +111,38 @@ const char* OpdsParser::findAttribute(const XML_Char** atts, const char* name) {
 
 void XMLCALL OpdsParser::startElement(void* userData, const XML_Char* name, const XML_Char** atts) {
   auto* self = static_cast<OpdsParser*>(userData);
+
+  if (strcmp(name, "link") == 0 || strstr(name, ":link") != nullptr) {
+    const char* href = findAttribute(atts, "href");
+    if (href) {
+      const char* rel = findAttribute(atts, "rel");
+      const char* type = findAttribute(atts, "type");
+
+      if (rel && strcmp(rel, "search") == 0) {
+        std::string sHref(href);
+        if (sHref.find("{searchTerms}") != std::string::npos) {
+          self->searchTemplate = sHref;
+        }
+      } else if (rel && strcmp(rel, "next") == 0 && !self->inEntry) {
+        self->nextPageUrl = href;
+      } else if (rel && strcmp(rel, "previous") == 0 && !self->inEntry) {
+        self->prevPageUrl = href;
+      }
+
+      if (self->inEntry) {
+        if (rel && type && strstr(rel, "opds-spec.org/acquisition") != nullptr &&
+            strcmp(type, "application/epub+zip") == 0) {
+          self->currentEntry.type = OpdsEntryType::BOOK;
+          self->currentEntry.href = href;
+        } else if (type && strstr(type, "application/atom+xml") != nullptr) {
+          if (self->currentEntry.type != OpdsEntryType::BOOK) {
+            self->currentEntry.type = OpdsEntryType::NAVIGATION;
+            self->currentEntry.href = href;
+          }
+        }
+      }
+    }
+  }
 
   // Check for entry element (with or without namespace prefix)
   if (strcmp(name, "entry") == 0 || strstr(name, ":entry") != nullptr) {

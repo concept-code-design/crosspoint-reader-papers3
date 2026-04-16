@@ -7,9 +7,12 @@
 #include <OpdsStream.h>
 #include <WiFi.h>
 
+#include <cctype>
+
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
 #include "activities/network/WifiSelectionActivity.h"
+#include "activities/util/KeyboardEntryActivity.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "network/HttpDownloader.h"
@@ -27,9 +30,12 @@ void OpdsBookBrowserActivity::onEnter() {
   entries.clear();
   navigationHistory.clear();
   currentPath = "";  // Root path - user provides full URL in settings
+  searchTemplate.clear();
   selectorIndex = 0;
   errorMessage.clear();
   statusMessage = tr(STR_CHECKING_WIFI);
+  consumeConfirm = false;
+  consumeBack = false;
   requestUpdate();
 
   // Check WiFi and connect if needed, then fetch feed
@@ -47,67 +53,51 @@ void OpdsBookBrowserActivity::onExit() {
 }
 
 void OpdsBookBrowserActivity::loop() {
-  // Handle WiFi selection subactivity
-  if (state == BrowserState::WIFI_SELECTION) {
-    // Should already handled by the WifiSelectionActivity
+  if (state == BrowserState::WIFI_SELECTION || state == BrowserState::SEARCH_INPUT) {
     return;
   }
 
-  // Handle error state - Confirm retries, Back goes back or home
+  if (consumeConfirm && mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+    consumeConfirm = false;
+    return;
+  }
+  if (consumeBack && mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+    consumeBack = false;
+    return;
+  }
+
   if (state == BrowserState::ERROR) {
-#if CROSSPOINT_PAPERS3
-    // Check Back first: on the 2-finger lift frame, wasReleased(zone) fires
-    // simultaneously with BTN_BACK.  Prioritise Back to avoid accidental retry.
-    if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-      navigateBack();
-    } else if (mappedInput.wasTapped()) {
-#else
     if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-#endif
-      // Check if WiFi is still connected
       if (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
-        // WiFi connected - just retry fetching the feed
-        LOG_DBG("OPDS", "Retry: WiFi connected, retrying fetch");
         state = BrowserState::LOADING;
         statusMessage = tr(STR_LOADING);
         requestUpdate();
         fetchFeed(currentPath);
       } else {
-        // WiFi not connected - launch WiFi selection
-        LOG_DBG("OPDS", "Retry: WiFi not connected, launching selection");
         launchWifiSelection();
       }
-#if !CROSSPOINT_PAPERS3
     } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
       navigateBack();
-#endif
     }
     return;
   }
 
-  // Handle WiFi check state - only Back works
-  if (state == BrowserState::CHECK_WIFI) {
+  if (state == BrowserState::CHECK_WIFI || state == BrowserState::LOADING) {
     if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-      onGoHome();
+      state == BrowserState::CHECK_WIFI ? onGoHome() : navigateBack();
     }
     return;
   }
 
-  // Handle loading state - only Back works
-  if (state == BrowserState::LOADING) {
+  if (state == BrowserState::DOWNLOADING) return;
+
+  if (state == BrowserState::BROWSING) {
     if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
       navigateBack();
+    } else if (mappedInput.wasReleased(MappedInputManager::Button::Left)) {
+      if (!searchTemplate.empty() && selectorIndex == 0) launchSearch();
     }
-    return;
-  }
 
-  // Handle downloading state - no input allowed
-  if (state == BrowserState::DOWNLOADING) {
-    return;
-  }
-
-  // Handle browsing state
-  if (state == BrowserState::BROWSING) {
 #if CROSSPOINT_PAPERS3
     if (mappedInput.wasTapped()) {
       if (!entries.empty()) {
@@ -130,11 +120,8 @@ void OpdsBookBrowserActivity::loop() {
           navigateToEntry(entry);
         }
       }
-    } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-      navigateBack();
     }
 
-    // Up/Down move one row at a time
     if (!entries.empty()) {
       if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
         selectorIndex = ButtonNavigator::previousIndex(selectorIndex, entries.size());
@@ -151,14 +138,8 @@ void OpdsBookBrowserActivity::loop() {
     if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
       if (!entries.empty()) {
         const auto& entry = entries[selectorIndex];
-        if (entry.type == OpdsEntryType::BOOK) {
-          downloadBook(entry);
-        } else {
-          navigateToEntry(entry);
-        }
+        entry.type == OpdsEntryType::BOOK ? downloadBook(entry) : navigateToEntry(entry);
       }
-    } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-      navigateBack();
     }
 
     // Handle navigation
@@ -195,15 +176,7 @@ void OpdsBookBrowserActivity::render(RenderLock&&) {
 
   renderer.drawCenteredText(UI_12_FONT_ID, 15, tr(STR_OPDS_BROWSER), true, EpdFontFamily::BOLD);
 
-  if (state == BrowserState::CHECK_WIFI) {
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, statusMessage.c_str());
-    const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
-    renderer.displayBuffer();
-    return;
-  }
-
-  if (state == BrowserState::LOADING) {
+  if (state == BrowserState::CHECK_WIFI || state == BrowserState::LOADING) {
     renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, statusMessage.c_str());
     const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
     GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
@@ -238,56 +211,42 @@ void OpdsBookBrowserActivity::render(RenderLock&&) {
   }
 
   // Browsing state
-  // Show appropriate button hint based on selected entry type
-  const char* confirmLabel = tr(STR_OPEN);
-  if (!entries.empty() && entries[selectorIndex].type == OpdsEntryType::BOOK) {
-    confirmLabel = tr(STR_DOWNLOAD);
-  }
-  const auto labels = mappedInput.mapLabels(tr(STR_BACK), confirmLabel, tr(STR_DIR_UP), tr(STR_DIR_DOWN));
+  const char* confirmLabel =
+      (!entries.empty() && entries[selectorIndex].type == OpdsEntryType::BOOK) ? tr(STR_DOWNLOAD) : tr(STR_OPEN);
+  const char* searchLabel = (!searchTemplate.empty() && selectorIndex == 0) ? tr(STR_SEARCH) : tr(STR_DIR_UP);
+  const auto labels = mappedInput.mapLabels(tr(STR_BACK), confirmLabel, searchLabel, tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
 
   if (entries.empty()) {
     renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, tr(STR_NO_ENTRIES));
-    renderer.displayBuffer();
-    return;
-  }
+  } else {
+    const auto pageStartIndex = selectorIndex / PAGE_ITEMS * PAGE_ITEMS;
+    renderer.fillRect(0, 60 + (selectorIndex % PAGE_ITEMS) * 30 - 2, pageWidth - 1, 30);
 
-  const auto pageStartIndex = selectorIndex / PAGE_ITEMS * PAGE_ITEMS;
-  renderer.fillRect(0, 60 + (selectorIndex % PAGE_ITEMS) * 30 - 2, pageWidth - 1, 30);
+    for (size_t i = pageStartIndex; i < entries.size() && i < static_cast<size_t>(pageStartIndex + PAGE_ITEMS); i++) {
+      const auto& entry = entries[i];
 
-  for (size_t i = pageStartIndex; i < entries.size() && i < static_cast<size_t>(pageStartIndex + PAGE_ITEMS); i++) {
-    const auto& entry = entries[i];
+      std::string displayText = (entry.type == OpdsEntryType::NAVIGATION) ? "> " + entry.title : entry.title;
+      if (entry.type == OpdsEntryType::BOOK && !entry.author.empty()) displayText += " - " + entry.author;
 
-    // Format display text with type indicator
-    std::string displayText;
-    if (entry.type == OpdsEntryType::NAVIGATION) {
-      displayText = "> " + entry.title;  // Folder/navigation indicator
-    } else {
-      // Book: "Title - Author" or just "Title"
-      displayText = entry.title;
-      if (!entry.author.empty()) {
-        displayText += " - " + entry.author;
-      }
+      auto item = renderer.truncatedText(UI_10_FONT_ID, displayText.c_str(), renderer.getScreenWidth() - 40);
+      renderer.drawText(UI_10_FONT_ID, 20, 60 + (i % PAGE_ITEMS) * 30, item.c_str(),
+                        i != static_cast<size_t>(selectorIndex));
     }
-
-    auto item = renderer.truncatedText(UI_10_FONT_ID, displayText.c_str(), renderer.getScreenWidth() - 40);
-    renderer.drawText(UI_10_FONT_ID, 20, 60 + (i % PAGE_ITEMS) * 30, item.c_str(),
-                      i != static_cast<size_t>(selectorIndex));
   }
 
   renderer.displayBuffer();
 }
 
 void OpdsBookBrowserActivity::fetchFeed(const std::string& path) {
-  const char* serverUrl = SETTINGS.opdsServerUrl;
-  if (strlen(serverUrl) == 0) {
+  if (strlen(SETTINGS.opdsServerUrl) == 0) {
     state = BrowserState::ERROR;
     errorMessage = tr(STR_NO_SERVER_URL);
     requestUpdate();
     return;
   }
 
-  std::string url = UrlUtils::buildUrl(serverUrl, path);
+  std::string url = UrlUtils::buildUrl(SETTINGS.opdsServerUrl, path);
   LOG_DBG("OPDS", "Fetching: %s", url.c_str());
 
   OpdsParser parser;
@@ -309,7 +268,16 @@ void OpdsBookBrowserActivity::fetchFeed(const std::string& path) {
     return;
   }
 
+  searchTemplate = parser.getSearchTemplate();
+  const auto& nextUrl = parser.getNextPageUrl();
+  const auto& prevUrl = parser.getPrevPageUrl();
   entries = std::move(parser).getEntries();
+  if (!prevUrl.empty()) {
+    entries.insert(entries.begin(), OpdsEntry{OpdsEntryType::NAVIGATION, tr(STR_PREV_PAGE), "", prevUrl, ""});
+  }
+  if (!nextUrl.empty()) {
+    entries.push_back(OpdsEntry{OpdsEntryType::NAVIGATION, tr(STR_NEXT_PAGE), "", nextUrl, ""});
+  }
   LOG_DBG("OPDS", "Found %d entries", entries.size());
   selectorIndex = 0;
 
@@ -325,7 +293,6 @@ void OpdsBookBrowserActivity::fetchFeed(const std::string& path) {
 }
 
 void OpdsBookBrowserActivity::navigateToEntry(const OpdsEntry& entry) {
-  // Push current path to history before navigating
   navigationHistory.push_back(currentPath);
   currentPath = entry.href;
 
@@ -340,10 +307,8 @@ void OpdsBookBrowserActivity::navigateToEntry(const OpdsEntry& entry) {
 
 void OpdsBookBrowserActivity::navigateBack() {
   if (navigationHistory.empty()) {
-    // At root, go home
     onGoHome();
   } else {
-    // Go back to previous catalog
     currentPath = navigationHistory.back();
     navigationHistory.pop_back();
 
@@ -364,10 +329,8 @@ void OpdsBookBrowserActivity::downloadBook(const OpdsEntry& book) {
   downloadTotal = 0;
   requestUpdate(true);
 
-  // Build full download URL
   std::string downloadUrl = UrlUtils::buildUrl(SETTINGS.opdsServerUrl, book.href);
 
-  // Create sanitized filename: "Title - Author.epub" or just "Title.epub" if no author
   std::string baseName = book.title;
   if (!book.author.empty()) {
     baseName += " - " + book.author;
@@ -385,8 +348,6 @@ void OpdsBookBrowserActivity::downloadBook(const OpdsEntry& book) {
 
   if (result == HttpDownloader::OK) {
     LOG_DBG("OPDS", "Download complete: %s", filename.c_str());
-
-    // Invalidate any existing cache for this file to prevent stale metadata issues
     Epub epub(filename, "/.crosspoint");
     epub.clearCache();
     LOG_DBG("OPDS", "Cleared cache for: %s", filename.c_str());
@@ -398,6 +359,58 @@ void OpdsBookBrowserActivity::downloadBook(const OpdsEntry& book) {
     errorMessage = tr(STR_DOWNLOAD_FAILED);
     requestUpdate();
   }
+}
+
+void OpdsBookBrowserActivity::launchSearch() {
+  consumeConfirm = true;
+  state = BrowserState::SEARCH_INPUT;
+  requestUpdate();
+
+  auto keyboard = std::make_unique<KeyboardEntryActivity>(renderer, mappedInput, tr(STR_SEARCH));
+  startActivityForResult(std::move(keyboard), [this](const ActivityResult& result) {
+    state = BrowserState::BROWSING;
+    if (!result.isCancelled) {
+      performSearch(std::get<KeyboardResult>(result.data).text);
+    } else {
+      requestUpdate();
+    }
+  });
+}
+
+void OpdsBookBrowserActivity::performSearch(const std::string& query) {
+  if (query.empty() || searchTemplate.empty()) {
+    state = BrowserState::BROWSING;
+    requestUpdate();
+    return;
+  }
+
+  auto urlEncode = [](const std::string& s) {
+    std::string out;
+    out.reserve(s.size() * 3);
+    for (unsigned char c : s) {
+      if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+        out += static_cast<char>(c);
+      } else {
+        char buf[4];
+        snprintf(buf, sizeof(buf), "%%%02X", c);
+        out += buf;
+      }
+    }
+    return out;
+  };
+
+  std::string url = searchTemplate;
+  const std::string placeholder = "{searchTerms}";
+  const size_t pos = url.find(placeholder);
+  if (pos != std::string::npos) url.replace(pos, placeholder.length(), urlEncode(query));
+
+  navigationHistory.push_back(currentPath);
+  currentPath = url;
+
+  state = BrowserState::LOADING;
+  statusMessage = tr(STR_LOADING);
+  requestUpdate(true);
+  fetchFeed(url);
 }
 
 void OpdsBookBrowserActivity::checkAndConnectWifi() {
@@ -415,6 +428,7 @@ void OpdsBookBrowserActivity::checkAndConnectWifi() {
 }
 
 void OpdsBookBrowserActivity::launchWifiSelection() {
+  consumeBack = consumeConfirm = true;
   state = BrowserState::WIFI_SELECTION;
   requestUpdate();
 
