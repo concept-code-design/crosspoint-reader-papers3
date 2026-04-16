@@ -201,6 +201,7 @@ void CrossPointWebServer::stop() {
 
   // Close any in-progress WebSocket upload
   if (wsUploadInProgress && wsUploadFile) {
+    // Explicit close() required: file-scope global persists beyond function scope
     wsUploadFile.close();
     wsUploadInProgress = false;
   }

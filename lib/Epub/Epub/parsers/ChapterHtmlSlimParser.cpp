@@ -1005,7 +1005,6 @@ bool ChapterHtmlSlimParser::parseAndBuildPages() {
       XML_SetElementHandler(parser, nullptr, nullptr);  // Clear callbacks
       XML_SetCharacterDataHandler(parser, nullptr);
       XML_ParserFree(parser);
-      file.close();
       return false;
     }
 
@@ -1017,7 +1016,6 @@ bool ChapterHtmlSlimParser::parseAndBuildPages() {
       XML_SetElementHandler(parser, nullptr, nullptr);  // Clear callbacks
       XML_SetCharacterDataHandler(parser, nullptr);
       XML_ParserFree(parser);
-      file.close();
       return false;
     }
 
@@ -1030,7 +1028,6 @@ bool ChapterHtmlSlimParser::parseAndBuildPages() {
       XML_SetElementHandler(parser, nullptr, nullptr);  // Clear callbacks
       XML_SetCharacterDataHandler(parser, nullptr);
       XML_ParserFree(parser);
-      file.close();
       return false;
     }
   } while (!done);
@@ -1040,7 +1037,6 @@ bool ChapterHtmlSlimParser::parseAndBuildPages() {
   XML_SetElementHandler(parser, nullptr, nullptr);  // Clear callbacks
   XML_SetCharacterDataHandler(parser, nullptr);
   XML_ParserFree(parser);
-  file.close();
 
   // Process last page if there is still text
   if (currentTextBlock) {

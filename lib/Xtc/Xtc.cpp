@@ -200,7 +200,6 @@ bool Xtc::generateCoverBmp() const {
     uint8_t* rowBuffer = static_cast<uint8_t*>(malloc(dstRowSize));
     if (!rowBuffer) {
       free(pageBuffer);
-      coverBmp.close();
       return false;
     }
 
@@ -256,7 +255,6 @@ bool Xtc::generateCoverBmp() const {
     }
   }
 
-  coverBmp.close();
   free(pageBuffer);
 
   LOG_DBG("XTC", "Generated cover BMP: %s", getCoverBmpPath().c_str());
@@ -317,9 +315,7 @@ bool Xtc::generateThumbBmp(int height) const {
             size_t bytesRead = src.read(buffer, sizeof(buffer));
             dst.write(buffer, bytesRead);
           }
-          dst.close();
         }
-        src.close();
       }
       LOG_DBG("XTC", "Copied cover to thumb (no scaling needed)");
       return Storage.exists(getThumbBmpPath(height).c_str());
@@ -373,7 +369,6 @@ bool Xtc::generateThumbBmp(int height) const {
   uint8_t* rowBuffer = static_cast<uint8_t*>(malloc(rowSize));
   if (!rowBuffer) {
     free(pageBuffer);
-    thumbBmp.close();
     return false;
   }
 
@@ -480,7 +475,6 @@ bool Xtc::generateThumbBmp(int height) const {
   }
 
   free(rowBuffer);
-  thumbBmp.close();
   free(pageBuffer);
 
   LOG_DBG("XTC", "Generated thumb BMP (%dx%d): %s", thumbWidth, thumbHeight, getThumbBmpPath(height).c_str());
