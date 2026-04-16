@@ -7,10 +7,13 @@
 /// Font metrics use "fixed-point 4" (4 fractional bits, i.e. 1/16-pixel
 /// resolution).  Both the 12.4 glyph advances (uint16_t) and the 4.4 kern
 /// values (int8_t) share the same 4 fractional bits, so they can be freely
-/// added into a single int32_t accumulator during text layout.  The
-/// accumulator is snapped to the nearest whole pixel only at render time,
-/// which avoids the per-character rounding errors that plagued integer-only
-/// layout.
+/// added into a single int32_t and snapped to a pixel as a unit.
+///
+/// Layout uses *differential rounding*: for each pair of adjacent glyphs the
+/// advance of the first glyph and the kern before the second glyph are summed
+/// in fixed-point and then snapped to a pixel in one step.  This guarantees
+/// that the same two glyphs always produce the same pixel spacing regardless
+/// of where on the line they appear.
 ///
 /// The helpers below eliminate the raw bit-shifts that would otherwise be
 /// scattered across every layout / measurement call site.
