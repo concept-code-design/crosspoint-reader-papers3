@@ -1,5 +1,6 @@
 #include "Logging.h"
 
+#include <algorithm>
 #include <string>
 
 #define MAX_ENTRY_LEN 256
@@ -38,37 +39,21 @@ void logPrintf(const char* level, const char* origin, const char* format, ...) {
   va_start(args, format);
   char buf[MAX_ENTRY_LEN];
   char* c = buf;
-  // add the timestamp
+  // add timestamp, level and origin
   {
     unsigned long ms = millis();
-    int len = snprintf(c, sizeof(buf), "[%lu] ", ms);
+    int len = snprintf(c, sizeof(buf), "[%lu] [%s] [%s] ", ms, level, origin);
     if (len < 0) {
-      return;  // encoding error, skip logging
+      va_end(args);
+      return;
     }
-    c += len;
+    c += std::min(len, MAX_ENTRY_LEN);
   }
-  // add the level
-  {
-    const char* p = level;
-    size_t remaining = sizeof(buf) - (c - buf);
-    while (*p && remaining > 1) {
-      *c++ = *p++;
-      remaining--;
-    }
-    if (remaining > 1) {
-      *c++ = ' ';
-    }
+  int len = vsnprintf(c, sizeof(buf) - (c - buf), format, args);
+  if (len < 0) {
+    va_end(args);
+    return;
   }
-  // add the origin
-  {
-    int len = snprintf(c, sizeof(buf) - (c - buf), "[%s] ", origin);
-    if (len < 0) {
-      return;  // encoding error, skip logging
-    }
-    c += len;
-  }
-  // add the user message
-  vsnprintf(c, sizeof(buf) - (c - buf), format, args);
   va_end(args);
   if (logSerial) {
     logSerial.print(buf);
