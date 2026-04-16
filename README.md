@@ -3,7 +3,19 @@
 Port of the [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) firmware to the **M5Paper S3**.
 Built using **PlatformIO** and targeting the **ESP32-S3** (dual-core Xtensa LX7, 240 MHz, 8 MB OPI-PSRAM).
 
-## Release 1.2.0 — CrossPoint PaperS3
+## Release 1.2.1 — CrossPoint PaperS3
+
+### Touch input overhaul
+
+- Restrict touch input to in-book reader and keyboard screens only — all other UI navigation uses footer buttons
+- Remove `wasTapped()` tap-to-select from settings, file browser, OPDS browser, WiFi selection, language select, OTA update, clear cache, KOReader auth, QR display, and network mode screens
+- Reader sub-activities (menu, chapter selection, footnotes, percent selection, QR, KOReader sync) no longer use full-screen touch zones
+
+### Orientation fix
+
+- Landscape orientation now only applies to in-book reading — all sub-activities (menu, chapter selection, etc.) render in portrait with footer buttons at the physical bottom of the device
+- Orientation is automatically restored when returning to the reader from any sub-activity
+- Paper S3 orientation options simplified to Portrait and Landscape only
 
 ### Upstream ports
 
