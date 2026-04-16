@@ -17,11 +17,7 @@ void QrDisplayActivity::onExit() { Activity::onExit(); }
 
 void QrDisplayActivity::loop() {
   if (mappedInput.wasReleased(MappedInputManager::Button::Back) ||
-      mappedInput.wasReleased(MappedInputManager::Button::Confirm)
-#if CROSSPOINT_PAPERS3
-      || mappedInput.wasTapped()
-#endif
-  ) {
+      mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
     finish();
     return;
   }

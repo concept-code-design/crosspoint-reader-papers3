@@ -32,40 +32,6 @@ void LanguageSelectActivity::loop() {
     return;
   }
 
-#if CROSSPOINT_PAPERS3
-  if (mappedInput.wasTapped()) {
-    // Tap-to-select: map touch Y to language list item
-    const auto& metrics = UITheme::getInstance().getMetrics();
-    const int16_t touchY = mappedInput.getTouchY();
-    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
-    const int rowHeight = metrics.listRowHeight;
-    const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, false, false);
-    if (touchY >= contentTop) {
-      int tappedRow = (touchY - contentTop) / rowHeight;
-      if (tappedRow < pageItems) {
-        int page = selectedIndex / pageItems;
-        int tappedIndex = page * pageItems + tappedRow;
-        if (tappedIndex >= 0 && tappedIndex < totalItems) {
-          selectedIndex = tappedIndex;
-        }
-      }
-    }
-    handleSelection();
-    return;
-  }
-
-  // Up/Down move one row at a time
-  if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-    selectedIndex = ButtonNavigator::previousIndex(static_cast<int>(selectedIndex), totalItems);
-    requestUpdate();
-    return;
-  }
-  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-    selectedIndex = ButtonNavigator::nextIndex(static_cast<int>(selectedIndex), totalItems);
-    requestUpdate();
-    return;
-  }
-#else
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
     handleSelection();
     return;
@@ -81,7 +47,6 @@ void LanguageSelectActivity::loop() {
     selectedIndex = ButtonNavigator::previousIndex(static_cast<int>(selectedIndex), totalItems);
     requestUpdate();
   });
-#endif
 }
 
 void LanguageSelectActivity::handleSelection() {

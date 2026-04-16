@@ -98,45 +98,6 @@ void OpdsBookBrowserActivity::loop() {
       if (!searchTemplate.empty() && selectorIndex == 0) launchSearch();
     }
 
-#if CROSSPOINT_PAPERS3
-    if (mappedInput.wasTapped()) {
-      if (!entries.empty()) {
-        // Tap-to-select: map touch Y to list item
-        const int16_t touchY = mappedInput.getTouchY();
-        constexpr int startY = 60;
-        constexpr int rowHeight = 30;
-        if (touchY >= startY) {
-          int tappedRow = (touchY - startY) / rowHeight;
-          if (tappedRow < PAGE_ITEMS) {
-            int page = selectorIndex / PAGE_ITEMS;
-            int tappedIndex = page * PAGE_ITEMS + tappedRow;
-            if (tappedIndex >= 0 && tappedIndex < static_cast<int>(entries.size())) {
-              selectorIndex = tappedIndex;
-            }
-          }
-        }
-        const auto& entry = entries[selectorIndex];
-        if (entry.type == OpdsEntryType::BOOK) {
-          downloadBook(entry);
-        } else {
-          navigateToEntry(entry);
-        }
-      }
-    }
-
-    if (!entries.empty()) {
-      if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-        selectorIndex = ButtonNavigator::previousIndex(selectorIndex, entries.size());
-        requestUpdate();
-        return;
-      }
-      if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-        selectorIndex = ButtonNavigator::nextIndex(selectorIndex, entries.size());
-        requestUpdate();
-        return;
-      }
-    }
-#else
     if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
       if (!entries.empty()) {
         const auto& entry = entries[selectorIndex];
@@ -166,7 +127,6 @@ void OpdsBookBrowserActivity::loop() {
         requestUpdate();
       });
     }
-#endif
   }
 }
 

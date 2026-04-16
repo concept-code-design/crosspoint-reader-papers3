@@ -57,20 +57,19 @@ void ConfirmationActivity::render(RenderLock&& lock) {
 
 void ConfirmationActivity::loop() {
 #if CROSSPOINT_PAPERS3
-  if (mappedInput.wasTapped()) {
-    // Tap left half = cancel, right half = confirm
-    const int16_t touchX = mappedInput.getTouchX();
-    const bool isConfirm = touchX >= renderer.getScreenWidth() / 2;
+  // Footer buttons: Up = Cancel, Down = Confirm (matches drawButtonHints layout)
+  if (mappedInput.wasReleased(MappedInputManager::Button::Up) ||
+      mappedInput.wasReleased(MappedInputManager::Button::Back)) {
     ActivityResult res;
-    res.isCancelled = !isConfirm;
+    res.isCancelled = true;
     setResult(std::move(res));
     finish();
     return;
   }
 
-  if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+  if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
     ActivityResult res;
-    res.isCancelled = true;
+    res.isCancelled = false;
     setResult(std::move(res));
     finish();
     return;

@@ -25,10 +25,11 @@ class MappedInputManager {
   void setFooterHeight(int16_t height) { gpio.setFooterHeight(height); }
   void setTouchOrientation(uint8_t orientation) { gpio.setTouchOrientation(orientation); }
 
-  // Returns true if any single-finger tap was released, regardless of zone.
-  // Excludes 2-finger back and swipe gestures.
-  // Use this for all non-reader activities where a tap anywhere should select an item.
+  // Returns true if any single-finger tap was released in a reader zone.
+  // Only active in reader/keyboard mode (footerHeight == 0); in footer mode
+  // all navigation goes through the footer buttons, so this returns false.
   bool wasTapped() const {
+    if (gpio.getFooterHeight() > 0) return false;
     // On the release frame, BTN_TWO_FINGER / BTN_SWIPE_* are SET in currentState
     // while the zone button transitions from previousState, so use isPressed guards.
     if (gpio.isPressed(HalGPIO::BTN_TWO_FINGER)) return false;

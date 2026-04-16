@@ -314,20 +314,6 @@ void WifiSelectionActivity::loop() {
 
   // Handle save prompt state
   if (state == WifiSelectionState::SAVE_PROMPT) {
-#if CROSSPOINT_PAPERS3
-    if (mappedInput.wasTapped()) {
-      // Tap left half = Yes (0), right half = No (1)
-      const int16_t touchX = mappedInput.getTouchX();
-      savePromptSelection = (touchX < renderer.getScreenWidth() / 2) ? 0 : 1;
-      if (savePromptSelection == 0) {
-        RenderLock lock(*this);
-        WIFI_STORE.addCredential(selectedSSID, enteredPassword);
-      }
-      onComplete(true);
-    } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-      onComplete(true);
-    }
-#else
     if (mappedInput.wasPressed(MappedInputManager::Button::Up) ||
         mappedInput.wasPressed(MappedInputManager::Button::Left)) {
       if (savePromptSelection > 0) {
@@ -352,31 +338,11 @@ void WifiSelectionActivity::loop() {
       // Skip saving, complete anyway
       onComplete(true);
     }
-#endif
     return;
   }
 
   // Handle forget prompt state (connection failed with saved credentials)
   if (state == WifiSelectionState::FORGET_PROMPT) {
-#if CROSSPOINT_PAPERS3
-    if (mappedInput.wasTapped()) {
-      // Tap left half = Cancel (0), right half = Forget (1)
-      const int16_t touchX = mappedInput.getTouchX();
-      forgetPromptSelection = (touchX < renderer.getScreenWidth() / 2) ? 0 : 1;
-      if (forgetPromptSelection == 1) {
-        RenderLock lock(*this);
-        WIFI_STORE.removeCredential(selectedSSID);
-        const auto network = find_if(networks.begin(), networks.end(),
-                                     [this](const WifiNetworkInfo& net) { return net.ssid == selectedSSID; });
-        if (network != networks.end()) {
-          network->hasSavedPassword = false;
-        }
-      }
-      startWifiScan();
-    } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-      startWifiScan();
-    }
-#else
     if (mappedInput.wasPressed(MappedInputManager::Button::Up) ||
         mappedInput.wasPressed(MappedInputManager::Button::Left)) {
       if (forgetPromptSelection > 0) {
@@ -407,7 +373,6 @@ void WifiSelectionActivity::loop() {
       // Skip forgetting, go back to network list
       startWifiScan();
     }
-#endif
     return;
   }
 
@@ -446,45 +411,6 @@ void WifiSelectionActivity::loop() {
       return;
     }
 
-#if CROSSPOINT_PAPERS3
-    // Tap-to-select: map touch Y to network list item
-    if (mappedInput.wasTapped()) {
-      if (!networks.empty()) {
-        const auto& metrics = UITheme::getInstance().getMetrics();
-        const int16_t touchY = mappedInput.getTouchY();
-        const int contentTop =
-            metrics.topPadding + metrics.headerHeight + metrics.tabBarHeight + metrics.verticalSpacing;
-        const int rowHeight = metrics.listRowHeight;
-        if (touchY >= contentTop) {
-          const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false);
-          int tappedRow = (touchY - contentTop) / rowHeight;
-          if (tappedRow < pageItems) {
-            int page = static_cast<int>(selectedNetworkIndex) / pageItems;
-            int tappedIndex = page * pageItems + tappedRow;
-            if (tappedIndex >= 0 && tappedIndex < static_cast<int>(networks.size())) {
-              selectedNetworkIndex = tappedIndex;
-            }
-          }
-        }
-        selectNetwork(selectedNetworkIndex);
-      } else {
-        startWifiScan();
-      }
-      return;
-    }
-
-    // Up/Down move one row at a time
-    if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
-      selectedNetworkIndex = ButtonNavigator::previousIndex(selectedNetworkIndex, networks.size());
-      requestUpdate();
-      return;
-    }
-    if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
-      selectedNetworkIndex = ButtonNavigator::nextIndex(selectedNetworkIndex, networks.size());
-      requestUpdate();
-      return;
-    }
-#else
     // Check for Confirm button to select network or rescan
     if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
       if (!networks.empty()) {
@@ -493,23 +419,6 @@ void WifiSelectionActivity::loop() {
         startWifiScan();
       }
       return;
-    }
-
-    if (mappedInput.wasPressed(MappedInputManager::Button::Right)) {
-      startWifiScan();
-      return;
-    }
-
-    const bool leftPressed = mappedInput.wasPressed(MappedInputManager::Button::Left);
-    if (leftPressed) {
-      const bool hasSavedPassword = !networks.empty() && networks[selectedNetworkIndex].hasSavedPassword;
-      if (hasSavedPassword) {
-        selectedSSID = networks[selectedNetworkIndex].ssid;
-        state = WifiSelectionState::FORGET_PROMPT;
-        forgetPromptSelection = 0;  // Default to "Cancel"
-        requestUpdate();
-        return;
-      }
     }
 
     // Handle navigation
@@ -522,7 +431,6 @@ void WifiSelectionActivity::loop() {
       selectedNetworkIndex = ButtonNavigator::previousIndex(selectedNetworkIndex, networks.size());
       requestUpdate();
     });
-#endif
   }
 }
 

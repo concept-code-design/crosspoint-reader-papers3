@@ -31,22 +31,7 @@ void NetworkModeSelectionActivity::loop() {
   }
 
   // Handle confirm button - select current option
-#if CROSSPOINT_PAPERS3
-  if (mappedInput.wasTapped()) {
-    // Tap-to-select: map touch Y to menu item
-    const auto& metrics = UITheme::getInstance().getMetrics();
-    const int16_t touchY = mappedInput.getTouchY();
-    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
-    const int rowHeight = metrics.listWithSubtitleRowHeight;
-    if (touchY >= contentTop) {
-      int tappedRow = (touchY - contentTop) / rowHeight;
-      if (tappedRow >= 0 && tappedRow < MENU_ITEM_COUNT) {
-        selectedIndex = tappedRow;
-      }
-    }
-#else
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
-#endif
     NetworkMode mode = NetworkMode::JOIN_NETWORK;
     if (selectedIndex == 1) {
       mode = NetworkMode::CONNECT_CALIBRE;

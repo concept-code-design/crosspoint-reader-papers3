@@ -26,6 +26,7 @@ class HalGPIO {
   // Back / Confirm / Up / Down instead of the normal 3-zone split.
   // Set to 0 to disable (e.g. in reader activities).
   void setFooterHeight(int16_t height) { footerHeight = height; }
+  int16_t getFooterHeight() const { return footerHeight; }
   void setTouchOrientation(uint8_t orientation) { touchOrientation = orientation; }
   bool wasPressed(uint8_t buttonIndex) const;
   bool wasAnyPressed() const;

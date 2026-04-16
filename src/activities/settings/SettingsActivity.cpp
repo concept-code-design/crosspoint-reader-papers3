@@ -76,29 +76,7 @@ void SettingsActivity::loop() {
   bool hasChangedCategory = false;
 
   // Handle actions with early return
-#if CROSSPOINT_PAPERS3
-  if (mappedInput.wasTapped()) {
-    // Tap-to-select: map touch Y to tab bar or settings item
-    {
-      const auto& metrics = UITheme::getInstance().getMetrics();
-      const int16_t touchY = mappedInput.getTouchY();
-      const int tabTop = metrics.topPadding + metrics.headerHeight;
-      const int tabBottom = tabTop + metrics.tabBarHeight;
-      const int listTop = tabBottom + metrics.verticalSpacing;
-      const int rowHeight = metrics.listRowHeight;
-
-      if (touchY >= tabTop && touchY < tabBottom) {
-        selectedSettingIndex = 0;
-      } else if (touchY >= listTop) {
-        int tappedRow = (touchY - listTop) / rowHeight;
-        if (tappedRow >= 0 && tappedRow < settingsCount) {
-          selectedSettingIndex = tappedRow + 1;
-        }
-      }
-    }
-#else
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
-#endif
     if (selectedSettingIndex == 0) {
       selectedCategoryIndex = (selectedCategoryIndex < categoryCount - 1) ? (selectedCategoryIndex + 1) : 0;
       hasChangedCategory = true;

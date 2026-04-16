@@ -71,23 +71,7 @@ void EpubReaderMenuActivity::loop() {
     requestUpdate();
   });
 
-#if CROSSPOINT_PAPERS3
-  if (mappedInput.wasTapped()) {
-    // Tap-to-select: map touch Y to menu item
-    {
-      constexpr int lineHeight = 75;
-      const int startY = 85;
-      const int16_t touchY = mappedInput.getTouchY();
-      if (touchY >= startY) {
-        int tappedRow = (touchY - startY) / lineHeight;
-        if (tappedRow >= 0 && tappedRow < static_cast<int>(menuItems.size())) {
-          selectedIndex = tappedRow;
-        }
-      }
-    }
-#else
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-#endif
     const auto selectedAction = menuItems[selectedIndex].action;
     if (selectedAction == MenuAction::ROTATE_SCREEN) {
       // Cycle orientation preview locally; actual rotation happens on menu exit.

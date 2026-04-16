@@ -101,11 +101,7 @@ void KOReaderAuthActivity::render(RenderLock&&) {
 void KOReaderAuthActivity::loop() {
   if (state == SUCCESS || state == FAILED) {
     if (mappedInput.wasPressed(MappedInputManager::Button::Back) ||
-        mappedInput.wasPressed(MappedInputManager::Button::Confirm)
-#if CROSSPOINT_PAPERS3
-        || mappedInput.wasTapped()
-#endif
-    ) {
+        mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
       finish();
     }
   }

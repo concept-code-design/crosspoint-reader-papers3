@@ -47,26 +47,7 @@ void RecentBooksActivity::onExit() {
 void RecentBooksActivity::loop() {
   const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, true);
 
-#if CROSSPOINT_PAPERS3
-  if (mappedInput.wasTapped()) {
-    // Tap-to-select: map touch Y to list item
-    const auto& metrics = UITheme::getInstance().getMetrics();
-    const int16_t touchY = mappedInput.getTouchY();
-    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
-    const int rowHeight = metrics.listWithSubtitleRowHeight;
-    if (touchY >= contentTop) {
-      int tappedRow = (touchY - contentTop) / rowHeight;
-      if (tappedRow < pageItems) {
-        int page = selectorIndex / pageItems;
-        int tappedIndex = page * pageItems + tappedRow;
-        if (tappedIndex >= 0 && tappedIndex < static_cast<int>(recentBooks.size())) {
-          selectorIndex = tappedIndex;
-        }
-      }
-    }
-#else
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-#endif
     if (!recentBooks.empty() && selectorIndex < static_cast<int>(recentBooks.size())) {
       LOG_DBG("RBA", "Selected recent book: %s", recentBooks[selectorIndex].path.c_str());
       onSelectBook(recentBooks[selectorIndex].path);

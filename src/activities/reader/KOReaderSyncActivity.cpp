@@ -346,24 +346,6 @@ void KOReaderSyncActivity::loop() {
   }
 
   if (state == SHOWING_RESULT) {
-#if CROSSPOINT_PAPERS3
-    if (mappedInput.wasTapped()) {
-      // Tap left half = option 0 (sync remote), right half = option 1 (upload local)
-      const int16_t touchX = mappedInput.getTouchX();
-      selectedOption = (touchX < renderer.getScreenWidth() / 2) ? 0 : 1;
-      if (selectedOption == 0) {
-        setResult(SyncResult{remotePosition.spineIndex, remotePosition.pageNumber});
-        finish();
-      } else {
-        performUpload();
-      }
-    } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-      ActivityResult result;
-      result.isCancelled = true;
-      setResult(std::move(result));
-      finish();
-    }
-#else
     // Navigate options
     if (mappedInput.wasReleased(MappedInputManager::Button::Up) ||
         mappedInput.wasReleased(MappedInputManager::Button::Left)) {
@@ -392,16 +374,11 @@ void KOReaderSyncActivity::loop() {
       setResult(std::move(result));
       finish();
     }
-#endif
     return;
   }
 
   if (state == NO_REMOTE_PROGRESS) {
-#if CROSSPOINT_PAPERS3
-    if (mappedInput.wasTapped()) {
-#else
     if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-#endif
       // Calculate hash if not done yet
       if (documentHash.empty()) {
         if (KOREADER_STORE.getMatchMethod() == DocumentMatchMethod::FILENAME) {

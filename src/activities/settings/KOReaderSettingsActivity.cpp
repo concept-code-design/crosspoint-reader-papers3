@@ -33,27 +33,10 @@ void KOReaderSettingsActivity::loop() {
     return;
   }
 
-#if CROSSPOINT_PAPERS3
-  if (mappedInput.wasTapped()) {
-    const auto& metrics = UITheme::getInstance().getMetrics();
-    const int16_t touchY = mappedInput.getTouchY();
-    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
-    const int rowHeight = metrics.listRowHeight;
-    if (touchY >= contentTop) {
-      int tappedRow = (touchY - contentTop) / rowHeight;
-      if (tappedRow >= 0 && tappedRow < MENU_ITEMS) {
-        selectedIndex = tappedRow;
-      }
-    }
-    handleSelection();
-    return;
-  }
-#else
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
     handleSelection();
     return;
   }
-#endif
 
   // Handle navigation
   buttonNavigator.onNext([this] {

@@ -87,12 +87,17 @@ int HalGPIO::touchZoneToButton(int16_t touchX, int16_t touchY) const {
 
   // Footer nav bar: bottom footerHeight pixels are split into 4 equal tap zones
   // mapping to Back / Confirm / Up / Down (matches drawButtonHints layout)
-  if (footerHeight > 0 && logicalY >= logicalH - footerHeight) {
-    const int16_t quarter = logicalW / 4;
-    if (logicalX < quarter) return BTN_BACK;
-    if (logicalX < quarter * 2) return BTN_CONFIRM;
-    if (logicalX < quarter * 3) return BTN_UP;
-    return BTN_DOWN;
+  if (footerHeight > 0) {
+    if (logicalY >= logicalH - footerHeight) {
+      const int16_t quarter = logicalW / 4;
+      if (logicalX < quarter) return BTN_BACK;
+      if (logicalX < quarter * 2) return BTN_CONFIRM;
+      if (logicalX < quarter * 3) return BTN_UP;
+      return BTN_DOWN;
+    }
+    // Content-area tap in footer mode — suppress entirely so only the
+    // footer buttons drive input in non-reader / non-keyboard activities.
+    return -1;
   }
 
   // Simple 3-zone vertical split across the content area
@@ -134,8 +139,10 @@ void HalGPIO::update() {
       touchStartY = lastTouchY;
     }
 
-    // While finger is down, report the zone button as pressed (for held-time detection)
-    int btn = touchZoneToButton(lastTouchX, lastTouchY);
+    // While finger is down, report the zone button as pressed (for held-time detection).
+    // Use touchStart (not current) position so the zone stays locked to the initial tap
+    // intent and doesn't bounce across zone boundaries when the finger drifts slightly.
+    int btn = touchZoneToButton(touchStartX, touchStartY);
     if (btn >= 0 && btn < HALGPIO_NUM_BUTTONS) {
       currentState |= (1 << btn);
     }
