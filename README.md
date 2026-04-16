@@ -3,6 +3,41 @@
 Port of the [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) firmware to the **M5Paper S3**.
 Built using **PlatformIO** and targeting the **ESP32-S3** (dual-core Xtensa LX7, 240 MHz, 8 MB OPI-PSRAM).
 
+## Release 0.2.4-dev
+
+### Upstream ports
+
+- **OPDS search and pagination** (fa2a3d2)
+- **Smooth battery percentage reading** (81ae9dd)
+- **Manual screen refresh** on power button short press (9c11f3e)
+- **Cover + Custom sleep screen** rework (405ce0c)
+- **Forward at end of book goes home** (d29b8ee)
+- **Slovenian translation** (14ec53a)
+- Fix: avoid skipping chapter after screenshot (5c12f2f)
+- Fix: use runtime screen dimensions for screenshots (6cd19f5)
+- Fix: correct Russian auto-turn and Ukrainian footnote translations (fa3c7d9, cff3e12)
+- Fix: missing Swedish translations (57fc655)
+- Fix: differential rounding for consistent inter-glyph spacing (1398aeb)
+- Fix: back navigation from BMPViewer returns to correct file (8d6b35b)
+- Fix: support hyphenation for EPUBs using ISO 639-2 language codes (1c13331)
+- Fix: ghosting on exit of BMPViewer (ed54f97)
+- Fix: font metrics for combining mark positioning (075ad7d)
+- Fix: two small memory leaks in ZipFile (104f391)
+- Fix: footnote link text trimming (80772ff)
+- Refactor: deduplicate BMP header writing in Xtc (5ba8529)
+- Refactor: RAII scoped open/close for ZipFile (b3b43bb)
+- Refactor: remove redundant FsFile close() calls (23aad21)
+- Refactor: simplify log formatting (c656673)
+- Refactor: replace picojpeg cover art conversion with JPEGDEC (40e4c96)
+- Chore: drop JPEGDEC patch hook (b898d53)
+
+### Paper S3 specific
+
+- Battery charging indicator and shared drawing helpers
+- Stabilize first wifi connection attempt
+- Support larger epub metadata caches
+- Orient sleep popups for reader screens
+
 ## Release 0.2.3
 
 - Hide unsupported Paper S3 orientation options in settings and reader menus
