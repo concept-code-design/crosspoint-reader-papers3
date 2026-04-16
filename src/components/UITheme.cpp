@@ -49,7 +49,7 @@ void UITheme::setTheme(CrossPointSettings::UI_THEME type) {
 }
 
 int UITheme::getNumberOfItemsPerPage(const GfxRenderer& renderer, bool hasHeader, bool hasTabBar, bool hasButtonHints,
-                                     bool hasSubtitle) {
+                                     bool hasSubtitle, int extraReservedHeight) {
   const ThemeMetrics& metrics = UITheme::getInstance().getMetrics();
   int reservedHeight = metrics.topPadding;
   if (hasHeader) {
@@ -61,6 +61,7 @@ int UITheme::getNumberOfItemsPerPage(const GfxRenderer& renderer, bool hasHeader
   if (hasButtonHints) {
     reservedHeight += metrics.verticalSpacing + metrics.buttonHintsHeight;
   }
+  reservedHeight += extraReservedHeight;
   const int availableHeight = renderer.getScreenHeight() - reservedHeight;
   int rowHeight = hasSubtitle ? metrics.listWithSubtitleRowHeight : metrics.listRowHeight;
   return availableHeight / rowHeight;

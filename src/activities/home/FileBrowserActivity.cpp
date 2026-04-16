@@ -7,6 +7,7 @@
 #include <I18n.h>
 
 #include <algorithm>
+#include <cstdio>
 
 #include "../util/ConfirmationActivity.h"
 #include "CrossPointSettings.h"
@@ -137,7 +138,9 @@ void FileBrowserActivity::loop() {
     return;
   }
 
-  const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false);
+  const int pathReserved = renderer.getLineHeight(SMALL_FONT_ID) + UITheme::getInstance().getMetrics().verticalSpacing;
+  const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false,
+                                                                        pathReserved);
 
 #if CROSSPOINT_PAPERS3
   if (mappedInput.wasTapped()) {
@@ -302,7 +305,9 @@ void FileBrowserActivity::render(RenderLock&&) {
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.headerHeight}, folderName.c_str());
 
   const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
-  const int contentHeight = pageHeight - contentTop - metrics.buttonHintsHeight - metrics.verticalSpacing;
+  const int pathLineHeight = renderer.getLineHeight(SMALL_FONT_ID);
+  const int pathReserved = pathLineHeight + metrics.verticalSpacing;
+  const int contentHeight = pageHeight - contentTop - metrics.buttonHintsHeight - metrics.verticalSpacing - pathReserved;
   if (files.empty()) {
     renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, contentTop + 20, tr(STR_NO_FILES_FOUND));
   } else {
@@ -311,6 +316,32 @@ void FileBrowserActivity::render(RenderLock&&) {
         [this](int index) { return getFileName(files[index]); }, nullptr,
         [this](int index) { return UITheme::getFileIcon(files[index]); },
         [this](int index) { return getFileExtension(files[index]); }, false);
+  }
+
+  // Full path display
+  {
+    const int pathY = pageHeight - metrics.buttonHintsHeight - metrics.verticalSpacing - pathLineHeight;
+    const int separatorY = pathY - metrics.verticalSpacing / 2;
+    renderer.drawLine(0, separatorY, pageWidth - 1, separatorY, 3, true);
+
+    const int pathMaxWidth = pageWidth - metrics.contentSidePadding * 2;
+    const char* pathStr = basepath.c_str();
+    const char* pathDisplay = pathStr;
+    char leftTruncBuf[256];
+    if (renderer.getTextWidth(SMALL_FONT_ID, pathStr) > pathMaxWidth) {
+      const char ellipsis[] = "\xe2\x80\xa6";
+      const int ellipsisWidth = renderer.getTextWidth(SMALL_FONT_ID, ellipsis);
+      const int available = pathMaxWidth - ellipsisWidth;
+      const char* p = pathStr;
+      while (*p) {
+        if (renderer.getTextWidth(SMALL_FONT_ID, p) <= available) break;
+        ++p;
+        while (*p && (static_cast<unsigned char>(*p) & 0xC0) == 0x80) ++p;
+      }
+      std::snprintf(leftTruncBuf, sizeof(leftTruncBuf), "%s%s", ellipsis, p);
+      pathDisplay = leftTruncBuf;
+    }
+    renderer.drawText(SMALL_FONT_ID, metrics.contentSidePadding, pathY, pathDisplay);
   }
 
   // Help text
