@@ -631,7 +631,7 @@ bool Epub::generateThumbBmp(int height) const {
     int THUMB_TARGET_HEIGHT = height;
 
 #if CROSSPOINT_PAPERS3
-    // Fast path: load JPEG to PSRAM, decode with JPEGDEC at 1/8 scale (skips temp file + picojpeg)
+    // Fast path: load JPEG to PSRAM, decode with JPEGDEC at 1/8 scale (skips temp file + streaming path)
     {
       const std::string normPath = FsHelpers::normalisePath(coverImageHref);
       size_t jpegSize = 0;
@@ -647,7 +647,7 @@ bool Epub::generateThumbBmp(int height) const {
             LOG_DBG("EBP", "Generated thumb BMP from JPG cover image (fast path), success: yes");
             return true;
           }
-          LOG_ERR("EBP", "JPEGDEC fast path failed, falling back to picojpeg");
+          LOG_ERR("EBP", "JPEGDEC fast path failed, falling back to streaming path");
           Storage.remove(getThumbBmpPath(height).c_str());
         } else {
           free(jpegData);
