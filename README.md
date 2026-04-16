@@ -3,7 +3,7 @@
 Port of the [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) firmware to the **M5Paper S3**.
 Built using **PlatformIO** and targeting the **ESP32-S3** (dual-core Xtensa LX7, 240 MHz, 8 MB OPI-PSRAM).
 
-## Release 0.2.4-dev
+## Release 1.2.0 — CrossPoint PaperS3
 
 ### Upstream ports
 
