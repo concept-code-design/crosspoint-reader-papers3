@@ -98,6 +98,12 @@ void HalPowerManager::startDeepSleep(HalGPIO& gpio) const {
 
 uint16_t HalPowerManager::getBatteryPercentage() const {
 #if CROSSPOINT_PAPERS3
+  static uint16_t cachedPercentX10 = 0;
+
+  if (isLowPower) {
+    return cachedPercentX10 / 10;
+  }
+
   // Average multiple ADC samples to reduce noise (ESP32-S3 ADC jitters ~20-50mV).
   uint32_t sum = 0;
   for (int i = 0; i < BAT_ADC_SAMPLES; i++) {
@@ -107,16 +113,27 @@ uint16_t HalPowerManager::getBatteryPercentage() const {
   const uint16_t battMv = (uint16_t)((adcMv * 204) / 100);
 
   // Hysteresis: only update cached voltage if change exceeds threshold.
-  // Prevents percentage from flickering between adjacent values.
+  // Prevents the raw percentage from flickering between adjacent values.
   if (lastBattMv == 0 || abs((int)battMv - (int)lastBattMv) >= BAT_HYSTERESIS_MV) {
     lastBattMv = battMv;
   }
   LOG_DBG("PWR", "Battery ADC=%umV  VBAT=%umV (cached=%umV)", adcMv, battMv, lastBattMv);
 
   // Li-Po linear approximation: 4200mV = 100%, 3300mV = 0%
-  if (lastBattMv >= 4200) return 100;
-  if (lastBattMv <= 3300) return 0;
-  return (uint16_t)((lastBattMv - 3300) * 100 / 900);
+  uint16_t rawPercent = 0;
+  if (lastBattMv >= 4200) {
+    rawPercent = 100;
+  } else if (lastBattMv > 3300) {
+    rawPercent = (uint16_t)((lastBattMv - 3300) * 100 / 900);
+  }
+
+  // Smooth the battery %.
+  if (cachedPercentX10 == 0) {
+    cachedPercentX10 = rawPercent * 10;
+  } else {
+    cachedPercentX10 = (cachedPercentX10 * 9 + rawPercent * 10) / 10;
+  }
+  return cachedPercentX10 / 10;
 #else
   return 100;
 #endif
