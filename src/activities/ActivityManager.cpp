@@ -2,7 +2,9 @@
 
 #include <HalPowerManager.h>
 #if CROSSPOINT_PAPERS3
+#include "CrossPointSettings.h"
 #include "components/UITheme.h"
+#include "reader/ReaderUtils.h"
 #endif
 
 #include "boot_sleep/BootActivity.h"
@@ -93,6 +95,11 @@ void ActivityManager::loop() {
         // Restore footer height for the returning activity (reader = 0, others = buttonHintsHeight)
         currentActivity->mappedInput.setFooterHeight(
             currentActivity->isReaderActivity() ? 0 : UITheme::getInstance().getMetrics().buttonHintsHeight);
+        // Restore orientation: readers use configured orientation, sub-activities use portrait.
+        if (currentActivity->isReaderActivity()) {
+          ReaderUtils::applyOrientation(currentActivity->renderer, SETTINGS.orientation);
+          currentActivity->mappedInput.setTouchOrientation(SETTINGS.orientation);
+        }
 #endif
         // Handle result if necessary
         if (currentActivity->resultHandler) {
