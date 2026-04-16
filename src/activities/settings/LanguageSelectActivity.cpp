@@ -41,11 +41,13 @@ void LanguageSelectActivity::loop() {
     const int rowHeight = metrics.listRowHeight;
     const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, false, false);
     if (touchY >= contentTop) {
-      int page = selectedIndex / pageItems;
       int tappedRow = (touchY - contentTop) / rowHeight;
-      int tappedIndex = page * pageItems + tappedRow;
-      if (tappedIndex >= 0 && tappedIndex < totalItems) {
-        selectedIndex = tappedIndex;
+      if (tappedRow < pageItems) {
+        int page = selectedIndex / pageItems;
+        int tappedIndex = page * pageItems + tappedRow;
+        if (tappedIndex >= 0 && tappedIndex < totalItems) {
+          selectedIndex = tappedIndex;
+        }
       }
     }
     handleSelection();

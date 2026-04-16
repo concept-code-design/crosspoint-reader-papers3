@@ -174,11 +174,13 @@ void FileBrowserActivity::loop() {
       const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
       const int rowHeight = metrics.listRowHeight;
       if (touchY >= contentTop) {
-        int page = selectorIndex / pageItems;
         int tappedRow = (touchY - contentTop) / rowHeight;
-        int tappedIndex = page * pageItems + tappedRow;
-        if (tappedIndex >= 0 && tappedIndex < static_cast<int>(files.size())) {
-          selectorIndex = tappedIndex;
+        if (tappedRow < pageItems) {
+          int page = selectorIndex / pageItems;
+          int tappedIndex = page * pageItems + tappedRow;
+          if (tappedIndex >= 0 && tappedIndex < static_cast<int>(files.size())) {
+            selectorIndex = tappedIndex;
+          }
         }
       }
     }

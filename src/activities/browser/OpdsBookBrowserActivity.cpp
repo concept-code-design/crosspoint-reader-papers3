@@ -106,11 +106,13 @@ void OpdsBookBrowserActivity::loop() {
         constexpr int startY = 60;
         constexpr int rowHeight = 30;
         if (touchY >= startY) {
-          int page = selectorIndex / PAGE_ITEMS;
           int tappedRow = (touchY - startY) / rowHeight;
-          int tappedIndex = page * PAGE_ITEMS + tappedRow;
-          if (tappedIndex >= 0 && tappedIndex < static_cast<int>(entries.size())) {
-            selectorIndex = tappedIndex;
+          if (tappedRow < PAGE_ITEMS) {
+            int page = selectorIndex / PAGE_ITEMS;
+            int tappedIndex = page * PAGE_ITEMS + tappedRow;
+            if (tappedIndex >= 0 && tappedIndex < static_cast<int>(entries.size())) {
+              selectorIndex = tappedIndex;
+            }
           }
         }
         const auto& entry = entries[selectorIndex];

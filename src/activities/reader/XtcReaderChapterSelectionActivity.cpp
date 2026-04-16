@@ -69,11 +69,13 @@ void XtcReaderChapterSelectionActivity::loop() {
       const int16_t touchY = mappedInput.getTouchY();
       const int startY = 60;
       if (touchY >= startY) {
-        const int page = selectorIndex / pageItems;
         const int tappedRow = (touchY - startY) / lineHeight;
-        const int tappedIndex = page * pageItems + tappedRow;
-        if (tappedIndex >= 0 && tappedIndex < totalItems) {
-          selectorIndex = tappedIndex;
+        if (tappedRow < pageItems) {
+          const int page = selectorIndex / pageItems;
+          const int tappedIndex = page * pageItems + tappedRow;
+          if (tappedIndex >= 0 && tappedIndex < totalItems) {
+            selectorIndex = tappedIndex;
+          }
         }
       }
     }

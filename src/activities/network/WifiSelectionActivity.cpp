@@ -457,11 +457,13 @@ void WifiSelectionActivity::loop() {
         const int rowHeight = metrics.listRowHeight;
         if (touchY >= contentTop) {
           const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false);
-          int page = static_cast<int>(selectedNetworkIndex) / pageItems;
           int tappedRow = (touchY - contentTop) / rowHeight;
-          int tappedIndex = page * pageItems + tappedRow;
-          if (tappedIndex >= 0 && tappedIndex < static_cast<int>(networks.size())) {
-            selectedNetworkIndex = tappedIndex;
+          if (tappedRow < pageItems) {
+            int page = static_cast<int>(selectedNetworkIndex) / pageItems;
+            int tappedIndex = page * pageItems + tappedRow;
+            if (tappedIndex >= 0 && tappedIndex < static_cast<int>(networks.size())) {
+              selectedNetworkIndex = tappedIndex;
+            }
           }
         }
         selectNetwork(selectedNetworkIndex);
