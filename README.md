@@ -1,16 +1,18 @@
 # CrossPoint Reader — M5Paper S3 Fork
 
-Fork of [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) targeting the **M5Paper S3**.
+Fork of the [CrossPoint Reader S3 port](https://github.com/juicecultus/crosspoint-reader-papers3) of the fork of the [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) targeting the **M5Paper S3**.
 Built with **PlatformIO** on **ESP32-S3** (dual-core Xtensa LX7, 240 MHz, 8 MB OPI-PSRAM).
 
 ## What's different from upstream
 
-This fork tracks the upstream `crosspoint-reader` project and adds M5Paper S3-specific work:
-
+This fork tracks the upstream `crosspoint-reader S3 port` project and fixes some issues in the upstream verion:
 - **Touch-tracking menus** — a gray highlight bar follows the finger in list views, with tap-to-select on release
-- **To Do list** — read-only checklist from `/todo/todo.md` on the SD card; items can be checked on the device; a companion Python script (`/Documents/PaperS3/todo/sync_todo.py`) syncs check-state between the Mac master file and the SD card
 - **Orientation guard** — settings and reader menus hide/normalise unsupported Paper S3 orientations
 - **Button remap fix** — `ButtonRemapActivity` disables the footer nav bar while remapping so the rightmost touch zone doesn't trigger "cancel"
+
+and adds M5Paper S3-specific work:
+- **To Do list** — read-only checklist from `/todo/todo.md` on the SD card; items can be checked on the device; a companion Python script (`/Documents/PaperS3/todo/sync_todo.py`) syncs check-state between the Mac master file and the SD card
+- **MDsupport** - added a read module (activity) to properly render Markdown files. Files with extension .md will be handled by this readerActivity. A list of supported features can be found in  the MDsupport.md file
 
 Everything else mirrors upstream. Files with fork-specific changes are not overwritten during upstream merges.
 
