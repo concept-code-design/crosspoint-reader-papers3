@@ -85,10 +85,12 @@ class ActivityManager {
   void goToFileBrowser(std::string path = {});
   void goToRecentBooks();
   void goToBrowser();
+  void goToTodo();
   void goToReader(std::string path);
   void goToSleep();
   void goToBoot();
   void goToFullScreenMessage(std::string message, EpdFontFamily::Style style = EpdFontFamily::REGULAR);
+  void goToCrashReport();
   void goHome();
 
   // This will move current activity to stack instead of deleting it

@@ -78,6 +78,8 @@ void SettingsActivity::loop() {
   // Handle actions with early return
 #if CROSSPOINT_PAPERS3
   // During a hold, track finger position so the gray bar follows the touched item.
+  // Continuous scroll is intentionally omitted on P3 — it overrides finger tracking
+  // and unexpectedly cycles the category while the user holds a touch zone.
   if (mappedInput.isPressed(MappedInputManager::Button::Confirm) ||
       mappedInput.isPressed(MappedInputManager::Button::Left) ||
       mappedInput.isPressed(MappedInputManager::Button::Right)) {
@@ -104,27 +106,57 @@ void SettingsActivity::loop() {
   }
 
   if (mappedInput.wasTapped()) {
-    // Tap-to-select: map touch Y to tab bar or settings item
-    {
-      const auto& metrics = UITheme::getInstance().getMetrics();
-      const int16_t touchY = mappedInput.getTouchY();
-      const int tabTop = metrics.topPadding + metrics.headerHeight;
-      const int tabBottom = tabTop + metrics.tabBarHeight;
-      const int listTop = tabBottom + metrics.verticalSpacing;
-      const int rowHeight = metrics.listRowHeight;
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const int16_t touchY = mappedInput.getTouchY();
+    const int tabTop = metrics.topPadding + metrics.headerHeight;
+    const int tabBottom = tabTop + metrics.tabBarHeight;
+    const int listTop = tabBottom + metrics.verticalSpacing;
+    const int rowHeight = metrics.listRowHeight;
 
-      if (touchY >= tabTop && touchY < tabBottom) {
+    if (touchY >= tabTop && touchY < tabBottom) {
+      // Tab bar: first tap selects it; a subsequent tap (already selected) cycles
+      // the category.  This prevents a single tap from skipping the visual feedback.
+      if (selectedSettingIndex == 0) {
+        selectedCategoryIndex = (selectedCategoryIndex < categoryCount - 1) ? (selectedCategoryIndex + 1) : 0;
+        hasChangedCategory = true;
+      } else {
         selectedSettingIndex = 0;
-      } else if (touchY >= listTop) {
-        int tappedRow = (touchY - listTop) / rowHeight;
-        if (tappedRow >= 0 && tappedRow < settingsCount) {
-          selectedSettingIndex = tappedRow + 1;
-        }
+      }
+      requestUpdate();
+    } else if (touchY >= listTop) {
+      const int tappedRow = (touchY - listTop) / rowHeight;
+      if (tappedRow >= 0 && tappedRow < settingsCount) {
+        selectedSettingIndex = tappedRow + 1;
+        toggleCurrentSetting();
+        requestUpdate();
+        return;
       }
     }
+  }
+
+  if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
+    if (selectedSettingIndex > 0) {
+      selectedSettingIndex = 0;
+      requestUpdate();
+    } else {
+      SETTINGS.saveToFile();
+      onGoHome();
+    }
+    return;
+  }
+
+  // Handle navigation (physical button fallback — press-only on P3, no continuous)
+  buttonNavigator.onNextPress([this] {
+    selectedSettingIndex = ButtonNavigator::nextIndex(selectedSettingIndex, settingsCount + 1);
+    requestUpdate();
+  });
+
+  buttonNavigator.onPreviousPress([this] {
+    selectedSettingIndex = ButtonNavigator::previousIndex(selectedSettingIndex, settingsCount + 1);
+    requestUpdate();
+  });
 #else
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
-#endif
     if (selectedSettingIndex == 0) {
       selectedCategoryIndex = (selectedCategoryIndex < categoryCount - 1) ? (selectedCategoryIndex + 1) : 0;
       hasChangedCategory = true;
@@ -147,7 +179,6 @@ void SettingsActivity::loop() {
     return;
   }
 
-  // Handle navigation
   buttonNavigator.onNextRelease([this] {
     selectedSettingIndex = ButtonNavigator::nextIndex(selectedSettingIndex, settingsCount + 1);
     requestUpdate();
@@ -169,6 +200,7 @@ void SettingsActivity::loop() {
     selectedCategoryIndex = ButtonNavigator::previousIndex(selectedCategoryIndex, categoryCount);
     requestUpdate();
   });
+#endif
 
   if (hasChangedCategory) {
     selectedSettingIndex = (selectedSettingIndex == 0) ? 0 : 1;

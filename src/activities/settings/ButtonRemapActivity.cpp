@@ -20,6 +20,11 @@ constexpr unsigned long kErrorDisplayMs = 1500;
 void ButtonRemapActivity::onEnter() {
   Activity::onEnter();
 
+  // Disable the footer nav bar so the bottom touch strip uses the 3-zone content
+  // mapping (Left/Confirm/Right) rather than the footer mapping (Back/Confirm/Up/Down).
+  // Without this, the rightmost footer zone fires Button::Down → finish() (cancel).
+  mappedInput.setFooterHeight(0);
+
   // Start with all roles unassigned to avoid duplicate blocking.
   currentStep = 0;
   tempMapping[0] = kUnassigned;

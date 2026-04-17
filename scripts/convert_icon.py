@@ -1,5 +1,14 @@
 import sys
 import os
+
+# On macOS with Homebrew, cairo lives in /opt/homebrew/lib.
+# cairosvg's cffi backend searches DYLD_LIBRARY_PATH, so inject it before import.
+if sys.platform == 'darwin':
+    _brew_lib = '/opt/homebrew/lib'
+    if os.path.isdir(_brew_lib):
+        os.environ['DYLD_LIBRARY_PATH'] = (
+            _brew_lib + ':' + os.environ.get('DYLD_LIBRARY_PATH', ''))
+
 from PIL import Image
 import cairosvg
 import io
@@ -16,7 +25,11 @@ def load_image(path, width, height):
     ext = os.path.splitext(path)[1].lower()
     if ext == '.svg':
         png_bytes = svg_to_png_bytes(path, width, height)
-        img = Image.open(io.BytesIO(png_bytes))
+        img = Image.open(io.BytesIO(png_bytes)).convert('RGBA')
+        # Flatten alpha onto white (cairosvg outputs transparent background)
+        background = Image.new('RGBA', img.size, (255, 255, 255, 255))
+        background.paste(img, mask=img.split()[3])
+        img = background
     else:
         img = Image.open(path)
         img = img.convert('RGBA')
@@ -58,12 +71,16 @@ def image_to_c_array(img, array_name):
     return c
 
 def main():
-    if len(sys.argv) < 5:
-        print('Usage: python convert_image.py input.png output_name width height')
+    if len(sys.argv) < 2:
+        print('Usage: python convert_icon.py input.svg [output_name] [width] [height]')
+        print('  output_name defaults to the input filename stem')
+        print('  width/height default to 32')
         sys.exit(1)
-    input_path, output_name, width, height = sys.argv[1:5]
+    input_path = sys.argv[1]
+    output_name = sys.argv[2] if len(sys.argv) > 2 else os.path.splitext(os.path.basename(input_path))[0]
+    width  = int(sys.argv[3]) if len(sys.argv) > 3 else 32
+    height = int(sys.argv[4]) if len(sys.argv) > 4 else 32
     array_name = output_name.capitalize() + 'Icon'
-    width, height = int(width), int(height)
     img = load_image(input_path, width, height)
     c_array = image_to_c_array(img, array_name)
 

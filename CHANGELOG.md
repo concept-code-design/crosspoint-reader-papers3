@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Upstream merge (crosspoint-reader v1.2.1)
+
+- **Crash report screen** — on panic reboot the device navigates to a new `CrashActivity` that displays the crash reason before returning home; `clearPanic()` is now called inside the activity instead of immediately at boot
+- **Force Refresh** — new `FORCE_REFRESH` option in the short power-button action setting triggers a half-refresh of the e-ink screen on demand
+- **JPEGDEC** library replaced: `bitbank2/JPEGDEC @ ^1.8.0` + patch script swapped for a pinned git commit (`#86282979`) that requires no patching; file-based JPEG decoding now uses JPEGDEC on all paths (picojpeg removed)
+- **ZipFile RAII** — `ScopedOpenClose` guard eliminates the manual `wasOpen`/`close` pattern in all six public methods; `fillUncompressedSizes` switched from `std::vector` to `std::deque`
+- **BitmapHelpers** — `BmpRowOrder` enum (`BottomUp` / `TopDown`) added; `createBmpHeader` now takes an explicit row-order argument; callers updated (`ScreenshotUtil`, `Xtc`)
+- **Xtc cover export** — replaced ~40-line manual BMP header with a single `createBmpHeader(..., BmpRowOrder::TopDown)` call
+- **Epub Section** cache format version bumped 18 → 19 (forces one-time cache regeneration on next book open)
+- **BookMetadataCache** batch uncompressed-size lookup switched from `std::vector` to `std::deque`
+- **ChapterHtmlSlimParser** improved footnote link text trimming (strips leading/trailing whitespace and brackets in a single pass)
+- **Epub.cpp** minor file close ordering fix
+- **Slovenian** language added (20 languages total)
+- **i18n**: added `STR_FORCE_REFRESH`, `STR_NEXT_PAGE`, `STR_PREV_PAGE`, `STR_SEARCH`, `STR_CRASH_TITLE`, `STR_CRASH_DESCRIPTION`, `STR_CRASH_REASON`, `STR_CRASH_NO_REASON`
+
+### To Do list
+
+- **TodoActivity** — new screen that reads `/todo/todo.md` from the SD card, displays items grouped by `##` section headings, and lets the user check off items (one-directional); checked state is written back on exit
+- **sync_todo.py** — Mac-side Python script that merges the Mac master item list with device check-states (`push`) or pulls device completions back into the Mac file (`pull`); item matching is by normalised text
+
+## 0.2.3
+
 ### UI / UX
 - **Vertical text centering** in all list rows (file browser, settings, recent books) — text, icons, subtitles, and values are now properly centered within their row height using dynamic font metrics instead of hardcoded pixel offsets
 - **Tap-friendly row heights** for in-book menus on PaperS3: chapter selection, footnotes, and reader menu rows increased from 30–36px to 75px with vertically centered text

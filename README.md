@@ -1,15 +1,43 @@
-# CrossPoint Reader — M5Paper S3 Port
+# CrossPoint Reader — M5Paper S3 Fork
 
-Port of the [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) firmware to the **M5Paper S3**.
-Built using **PlatformIO** and targeting the **ESP32-S3** (dual-core Xtensa LX7, 240 MHz, 8 MB OPI-PSRAM).
+Fork of [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) targeting the **M5Paper S3**.
+Built with **PlatformIO** on **ESP32-S3** (dual-core Xtensa LX7, 240 MHz, 8 MB OPI-PSRAM).
 
-## Release 0.2.3
+## What's different from upstream
+
+This fork tracks the upstream `crosspoint-reader` project and adds M5Paper S3-specific work:
+
+- **Touch-tracking menus** — a gray highlight bar follows the finger in list views, with tap-to-select on release
+- **To Do list** — read-only checklist from `/todo/todo.md` on the SD card; items can be checked on the device; a companion Python script (`/Documents/PaperS3/todo/sync_todo.py`) syncs check-state between the Mac master file and the SD card
+- **Orientation guard** — settings and reader menus hide/normalise unsupported Paper S3 orientations
+- **Button remap fix** — `ButtonRemapActivity` disables the footer nav bar while remapping so the rightmost touch zone doesn't trigger "cancel"
+
+Everything else mirrors upstream. Files with fork-specific changes are not overwritten during upstream merges.
+
+## Changelog
+
+### Post-0.2.3 (current)
+
+Merged from upstream v1.2.1:
+
+- **Crash report screen** — on panic reboot the device now shows a crash report before returning to the home screen
+- **Force Refresh** option added to the short power-button action setting
+- **JPEGDEC** library pinned to a specific git commit, removing the patch script
+- **ZipFile RAII** — `ScopedOpenClose` guard eliminates all `wasOpen` boilerplate
+- **BitmapHelpers** — `BmpRowOrder` enum; `createBmpHeader` now takes explicit row order
+- **Xtc cover export** uses `createBmpHeader` (TopDown) instead of manual header bytes
+- **Epub Section** cache format bumped to v19 (forces one-time cache regeneration)
+- **BookMetadataCache** batch size lookup switched from `vector` to `deque`
+- **ChapterHtmlSlimParser** improved footnote link text trimming
+- **Slovenian** language added (20 languages total)
+- i18n: added `STR_FORCE_REFRESH`, `STR_NEXT_PAGE`, `STR_PREV_PAGE`, `STR_SEARCH`, `STR_CRASH_*`
+
+### 0.2.3
 
 - Hide unsupported Paper S3 orientation options in settings and reader menus
-- Normalize saved Paper S3 orientation settings to supported values on load
-- Fix Paper S3 chapter selection taps so footer/select actions keep the current row
-- `EPD_Painter` remains the display driver
-- Long-press chapter skip stays user-controlled in Settings
+- Normalise saved Paper S3 orientation settings to supported values on load
+- Fix chapter-selection taps: footer/select actions preserve the current row
+- Long-press chapter skip remains user-controlled in Settings
 
 ## Hardware
 
@@ -28,11 +56,13 @@ Built using **PlatformIO** and targeting the **ESP32-S3** (dual-core Xtensa LX7,
 - EPUB 2/3 parsing and rendering (including images)
 - Touch-based navigation (no physical buttons needed)
 - File explorer, recent books, and reading progress
+- To Do list with on-device check-off and Mac sync script
 - Configurable font, layout, display, and sleep options
 - WiFi book upload and OTA updates
 - KOReader Sync integration
-- Multi-language support
+- Multi-language support (20 languages)
 - 2-bit grayscale for cover art and sleep screens
+- Crash report screen on unexpected reboot
 
 ## Building & Flashing
 
@@ -45,8 +75,8 @@ Built using **PlatformIO** and targeting the **ESP32-S3** (dual-core Xtensa LX7,
 ### Clone
 
 ```sh
-git clone --recursive https://github.com/juicecultus/crosspoint-reader-papers3
-cd crosspoint-reader-papers3
+git clone --recursive <this-repo-url>
+cd crosspoint-reader-papers3-fork
 ```
 
 ### Build & Flash
@@ -59,13 +89,13 @@ pio run --target upload
 
 ```sh
 pio device monitor
+# or for colour-coded output:
+python3 scripts/debugging_monitor.py
 ```
 
 ## Navigation
 
-The Paper S3 uses a combination of on-screen buttons and touch gestures.
-
-### Footer nav bar (all screens except in-book reader)
+### Footer nav bar (all screens except the in-book reader)
 
 Every non-reader screen shows a row of tappable buttons at the bottom:
 
@@ -79,8 +109,8 @@ Every non-reader screen shows a row of tappable buttons at the bottom:
 |--------|--------|
 | **Back** | Go back / exit current screen |
 | **Confirm** | Select / confirm highlighted item |
-| **Prev (▲)** | Previous page of items |
-| **Next (▼)** | Next page of items |
+| **Prev (▲)** | Move selection up / previous page |
+| **Next (▼)** | Move selection down / next page |
 
 Only buttons relevant to the current screen are shown.
 
@@ -100,7 +130,7 @@ The content area above the footer is split into three vertical zones:
 +--------+---------+--------+--------+
 ```
 
-In **long lists** (file browser, chapters, recent books), tapping the content
+In long lists (file browser, chapters, recent books), tapping the content
 area selects the item at that position.
 
 ### In-book reader (full screen, no footer)
@@ -119,28 +149,58 @@ area selects the item at that position.
 | **Swipe up** | Previous page |
 | **Swipe down** | Next page |
 
-## Internals
+## To Do list
 
-CrossPoint caches chapter data to the SD card under `.crosspoint/` to reduce RAM usage.
+Place a `todo.md` file in the `/todo/` directory on the SD card:
+
+```markdown
+# To Do
+
+## Personal
+- [ ] Call dentist
+- [x] Renew library card
+
+## Work
+- [ ] Review project proposal
+```
+
+Items can be checked on the device (one-directional — checking only).
+Checked state is written back to the SD card when leaving the screen.
+
+### Syncing with Mac
+
+```sh
+# Before ejecting the SD card — push Mac master → device
+python3 sync_todo.py push /Volumes/SD_CARD/todo/todo.md ~/Documents/PaperS3/todo/todo.md
+
+# After re-inserting the SD card — pull device check-state → Mac master
+python3 sync_todo.py pull /Volumes/SD_CARD/todo/todo.md ~/Documents/PaperS3/todo/todo.md
+```
+
+The Mac file is authoritative for item text; the device file is authoritative for check state.
+
+## SD card cache
+
+CrossPoint caches chapter data under `.crosspoint/` to reduce RAM usage.
 
 ```
 .crosspoint/
-├── epub_<hash>/
-│   ├── progress.bin
-│   ├── cover.bmp
-│   ├── book.bin
-│   └── sections/
-│       ├── 0.bin
-│       ├── 1.bin
-│       └── ...
+└── epub_<hash>/
+    ├── progress.bin
+    ├── cover.bmp
+    ├── book.bin
+    └── sections/
+        ├── 0.bin
+        ├── 1.bin
+        └── ...
 ```
 
-Deleting `.crosspoint/` clears the entire cache.
+Delete `.crosspoint/` to clear the entire cache (all books will be re-indexed on next open).
 
 ## Credits
 
-Ported from [crosspoint-reader](https://github.com/crosspoint-reader/crosspoint-reader) (originally targeting Xteink X4 / ESP32-C3).
+Forked from [crosspoint-reader](https://github.com/crosspoint-reader/crosspoint-reader) (originally targeting Xteink X4 / ESP32-C3).
 
-Display driver powered by [**EPD_Painter**](https://github.com/tonywestonuk/EPD_Painter) — fast parallel e-ink rendering for ESP32-S3 e-paper displays.
+Display driver powered by [**EPD_Painter**](https://github.com/tonywestonuk/EPD_Painter).
 
-Huge shoutout to [**diy-esp32-epub-reader** by atomic14](https://github.com/atomic14/diy-esp32-epub-reader) for the original inspiration.
+Original inspiration: [**diy-esp32-epub-reader** by atomic14](https://github.com/atomic14/diy-esp32-epub-reader).
