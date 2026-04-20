@@ -12,6 +12,8 @@ This fork tracks the upstream `crosspoint-reader S3 port` project and fixes some
 
 and adds M5Paper S3-specific work:
 - **To Do list** — read-only checklist from `/todo/todo.md` on the SD card; items can be checked on the device; a companion Python script (`/Documents/PaperS3/todo/sync_todo.py`) syncs check-state between the Mac master file and the SD card
+- **Calendar** — main menu entry that opens `/calendar/today.md` from the SD card via the Markdown reader
+- **RTC / NTP** — BM8563 RTC is read at boot to set the system clock; syncs from NTP whenever WiFi connects
 - **MDsupport** - added a read module (activity) to properly render Markdown files. Files with extension .md will be handled by this readerActivity. A list of supported features can be found in  the MDsupport.md file
 
 Everything else mirrors upstream. Files with fork-specific changes are not overwritten during upstream merges.
@@ -19,6 +21,12 @@ Everything else mirrors upstream. Files with fork-specific changes are not overw
 ## Changelog
 
 ### Post-0.2.3 (current)
+
+Fork additions:
+
+- **Calendar** — new main menu entry (below To Do) opens `/calendar/today.md` from the SD card via `MdReaderActivity`; uses `CalIcon` (32×32)
+- **HalRTC** — new HAL class wrapping the BM8563 RTC; `begin()` sets the ESP32 system clock from the RTC at boot; `syncWithNTP()` updates the RTC from NTP whenever WiFi connects
+- **Icon tooling** — `convert_icon.py` script converts an editable 32×32 `#`/`.` pixel grid back to a C `uint8_t[]` header; `todo_icon_edit.txt` and `todo2_icon_edit.txt` are the editable sources for `todo.h` and `todo2.h`
 
 Merged from upstream v1.2.1:
 
@@ -59,6 +67,8 @@ Merged from upstream v1.2.1:
 - Touch-based navigation (no physical buttons needed)
 - File explorer, recent books, and reading progress
 - To Do list with on-device check-off and Mac sync script
+- Calendar entry opens daily calendar file (`/calendar/today.md`) from SD card
+- RTC-backed system clock; auto-syncs from NTP on WiFi connect
 - Configurable font, layout, display, and sleep options
 - WiFi book upload and OTA updates
 - KOReader Sync integration
@@ -180,6 +190,12 @@ python3 sync_todo.py pull /Volumes/SD_CARD/todo/todo.md ~/Documents/PaperS3/todo
 ```
 
 The Mac file is authoritative for item text; the device file is authoritative for check state.
+
+## Calendar
+
+Place a Markdown file at `/calendar/today.md` on the SD card. The Calendar menu entry opens it directly in the Markdown reader.
+
+Update the file from your Mac to show today's agenda, appointments, or notes — any valid Markdown is supported.
 
 ## SD card cache
 

@@ -13,6 +13,10 @@
 #include "home/HomeActivity.h"
 #include "home/RecentBooksActivity.h"
 #include "network/CrossPointWebServerActivity.h"
+#include <HalStorage.h>
+#include <Md.h>
+
+#include "reader/MdReaderActivity.h"
 #include "reader/ReaderActivity.h"
 #include "settings/SettingsActivity.h"
 #include "todo/TodoActivity.h"
@@ -194,6 +198,20 @@ void ActivityManager::goToBrowser() {
 }
 
 void ActivityManager::goToTodo() { replaceActivity(std::make_unique<TodoActivity>(renderer, mappedInput)); }
+
+void ActivityManager::goToCalendar() {
+  static constexpr const char* kPath = "/calendar/today.md";
+  if (!Storage.exists(kPath)) {
+    LOG_ERR("CAL", "Calendar file not found: %s", kPath);
+    return;
+  }
+  auto md = std::make_unique<Md>(kPath, "/.crosspoint");
+  if (!md->load()) {
+    LOG_ERR("CAL", "Failed to load calendar file");
+    return;
+  }
+  replaceActivity(std::make_unique<MdReaderActivity>(renderer, mappedInput, std::move(md)));
+}
 
 void ActivityManager::goToReader(std::string path) {
   replaceActivity(std::make_unique<ReaderActivity>(renderer, mappedInput, std::move(path)));

@@ -17,10 +17,20 @@
 - **Slovenian** language added (20 languages total)
 - **i18n**: added `STR_FORCE_REFRESH`, `STR_NEXT_PAGE`, `STR_PREV_PAGE`, `STR_SEARCH`, `STR_CRASH_TITLE`, `STR_CRASH_DESCRIPTION`, `STR_CRASH_REASON`, `STR_CRASH_NO_REASON`
 
+### Calendar
+
+- **Calendar menu entry** — new item in the home menu (below To Do) that opens `/calendar/today.md` from the SD card via `MdReaderActivity`; uses `CalIcon` (32×32 from `calendar.hls.h`)
+
+### RTC / Time
+
+- **HalRTC** — new HAL class (`lib/hal/HalRTC.h/.cpp`) wraps the BM8563 RTC (PCF8563-compatible) on I2C1 (SDA=41, SCL=42); `begin()` reads the stored time and sets the ESP32 system clock at boot; `syncWithNTP()` polls an NTP server (default `ntp0.nl.net`) and writes the result back to the BM8563
+- **NTP sync on WiFi connect** — `CrossPointWebServerActivity` calls `halRTC.syncWithNTP()` immediately after a successful WiFi connection, keeping the RTC accurate whenever the device goes online
+
 ### To Do list
 
 - **TodoActivity** — new screen that reads `/todo/todo.md` from the SD card, displays items grouped by `##` section headings, and lets the user check off items (one-directional); checked state is written back on exit
 - **sync_todo.py** — Mac-side Python script that merges the Mac master item list with device check-states (`push`) or pulls device completions back into the Mac file (`pull`); item matching is by normalised text
+- **Icon tooling** — `convert_icon.py` converts an editable `#`/`.` pixel grid (32×32) back to a C `uint8_t[]` header; editable sources: `todo_icon_edit.txt` → `todo.h`, `todo2_icon_edit.txt` → `todo2.h`
 
 ## 0.2.3
 

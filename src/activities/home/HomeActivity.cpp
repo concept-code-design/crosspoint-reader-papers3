@@ -20,7 +20,7 @@
 #include "fontIds.h"
 
 int HomeActivity::getMenuItemCount() const {
-  int count = 5;  // File Browser, Recents, To Do, File transfer, Settings
+  int count = 6;  // File Browser, Recents, To Do, Calendar, File transfer, Settings
   if (!recentBooks.empty()) {
     count += recentBooks.size();
   }
@@ -280,6 +280,7 @@ void HomeActivity::loop() {
     const int recentsIdx = idx++;
     const int opdsLibraryIdx = hasOpdsUrl ? idx++ : -1;
     const int todoIdx = idx++;
+    const int calendarIdx = idx++;
     const int fileTransferIdx = idx++;
     const int settingsIdx = idx;
 
@@ -293,6 +294,8 @@ void HomeActivity::loop() {
       onOpdsBrowserOpen();
     } else if (menuSelectedIndex == todoIdx) {
       onTodoOpen();
+    } else if (menuSelectedIndex == calendarIdx) {
+      onCalendarOpen();
     } else if (menuSelectedIndex == fileTransferIdx) {
       onFileTransferOpen();
     } else if (menuSelectedIndex == settingsIdx) {
@@ -317,8 +320,8 @@ void HomeActivity::render(RenderLock&&) {
 
   // Build menu items dynamically
   std::vector<const char*> menuItems = {tr(STR_BROWSE_FILES), tr(STR_MENU_RECENT_BOOKS), tr(STR_TODO),
-                                        tr(STR_FILE_TRANSFER), tr(STR_SETTINGS_TITLE)};
-  std::vector<UIIcon> menuIcons = {Folder, Recent, Todo, Transfer, Settings};
+                                        tr(STR_CALENDAR), tr(STR_FILE_TRANSFER), tr(STR_SETTINGS_TITLE)};
+  std::vector<UIIcon> menuIcons = {Folder, Recent, Todo, Cal, Transfer, Settings};
 
   if (hasOpdsUrl) {
     // Insert OPDS Browser after Recents
@@ -362,3 +365,5 @@ void HomeActivity::onFileTransferOpen() { activityManager.goToFileTransfer(); }
 void HomeActivity::onOpdsBrowserOpen() { activityManager.goToBrowser(); }
 
 void HomeActivity::onTodoOpen() { activityManager.goToTodo(); }
+
+void HomeActivity::onCalendarOpen() { activityManager.goToCalendar(); }

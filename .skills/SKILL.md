@@ -127,6 +127,7 @@ These flags in `platformio.ini` fundamentally affect firmware behavior:
 | `HalTouch` | GT911 capacitive touch I2C driver | *(none)* |
 | `HalStorage` | SD card file I/O (SdFat) | `Storage` |
 | `HalPowerManager` | Battery, sleep, CPU power (AXP2101) | `powerManager` |
+| `HalRTC` | BM8563 RTC (PCF8563-compatible) on I2C1; `begin()` sets system clock; `syncWithNTP()` updates RTC from NTP | `halRTC` |
 
 **Location**: [lib/hal/](../lib/hal/)
 

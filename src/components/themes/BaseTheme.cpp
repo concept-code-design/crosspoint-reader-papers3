@@ -2,10 +2,12 @@
 
 #include <GfxRenderer.h>
 #include <HalPowerManager.h>
+#include <HalRTC.h>
 #include <HalStorage.h>
 #include <Logging.h>
 
 #include <cstdint>
+#include <ctime>
 #include <string>
 
 #include "I18n.h"
@@ -289,6 +291,23 @@ void BaseTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* t
   drawBatteryRight(renderer,
                    Rect{batteryX, rect.y + 5, BaseMetrics::values.batteryWidth, BaseMetrics::values.batteryHeight},
                    showBatteryPercentage);
+
+  // Draw current time (HH:MM, 24-hour) on the left side of the header.
+  {
+    constexpr int kClockAreaWidth = 60;
+    renderer.fillRect(rect.x, rect.y + 5, kClockAreaWidth, BaseMetrics::values.batteryHeight + 10, false);
+    char timeBuf[6];  // "HH:MM\0"
+    if (halRTC.isSynced()) {
+      time_t now = time(nullptr);
+      struct tm t;
+      localtime_r(&now, &t);
+      snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d", t.tm_hour, t.tm_min);
+    } else {
+      snprintf(timeBuf, sizeof(timeBuf), "--:--");
+    }
+    renderer.drawText(SMALL_FONT_ID, rect.x + BaseMetrics::values.statusBarHorizontalMargin + 2, rect.y + 5,
+                      timeBuf, true);
+  }
 
   if (title) {
     int padding = rect.width - batteryX + BaseMetrics::values.batteryWidth;

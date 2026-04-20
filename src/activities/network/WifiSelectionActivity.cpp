@@ -1,9 +1,12 @@
 #include "WifiSelectionActivity.h"
 
 #include <GfxRenderer.h>
+#include <HalRTC.h>
 #include <I18n.h>
 #include <Logging.h>
 #include <WiFi.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include <map>
 
@@ -762,6 +765,17 @@ void WifiSelectionActivity::renderForgetPrompt() const {
 }
 
 void WifiSelectionActivity::onComplete(const bool connected) {
+  if (connected) {
+    // Fire-and-forget NTP sync — runs in a background task so it never blocks
+    // the main loop. The task self-deletes when done.
+    xTaskCreate(
+        [](void*) {
+          halRTC.syncWithNTP();
+          vTaskDelete(nullptr);
+        },
+        "NTPSync", 4096, nullptr, 1, nullptr);
+  }
+
   ActivityResult result;
   result.isCancelled = !connected;
   if (connected) {

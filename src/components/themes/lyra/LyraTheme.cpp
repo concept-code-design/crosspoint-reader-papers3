@@ -2,10 +2,12 @@
 
 #include <GfxRenderer.h>
 #include <HalPowerManager.h>
+#include <HalRTC.h>
 #include <HalStorage.h>
 #include <I18n.h>
 
 #include <cstdint>
+#include <ctime>
 #include <string>
 #include <vector>
 
@@ -23,6 +25,7 @@
 #include "components/icons/recent.h"
 #include "components/icons/settings2.h"
 #include "components/icons/text24.h"
+#include "components/icons/cal.h"
 #include "components/icons/todo.h"
 #include "components/icons/transfer.h"
 #include "components/icons/wifi.h"
@@ -79,6 +82,8 @@ const uint8_t* iconForName(UIIcon icon, int size) {
         return HotspotIcon;
       case UIIcon::Todo:
         return TodoIcon;
+      case UIIcon::Cal:
+        return CalIcon;
       default:
         return nullptr;
     }
@@ -176,6 +181,23 @@ void LyraTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* t
   drawBatteryRight(renderer,
                    Rect{batteryX, rect.y + 5, LyraMetrics::values.batteryWidth, LyraMetrics::values.batteryHeight},
                    showBatteryPercentage);
+
+  // Draw current time (HH:MM, 24-hour) on the left side of the header.
+  {
+    constexpr int kClockAreaWidth = 60;
+    renderer.fillRect(rect.x, rect.y + 5, kClockAreaWidth, LyraMetrics::values.batteryHeight + 10, false);
+    char timeBuf[6];  // "HH:MM\0"
+    if (halRTC.isSynced()) {
+      time_t now = time(nullptr);
+      struct tm t;
+      localtime_r(&now, &t);
+      snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d", t.tm_hour, t.tm_min);
+    } else {
+      snprintf(timeBuf, sizeof(timeBuf), "--:--");
+    }
+    renderer.drawText(SMALL_FONT_ID, rect.x + LyraMetrics::values.statusBarHorizontalMargin + 2, rect.y + 5,
+                      timeBuf, true);
+  }
 
   int maxTitleWidth =
       rect.width - LyraMetrics::values.contentSidePadding * 2 - (subtitle != nullptr ? maxSubtitleWidth : 0);

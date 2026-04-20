@@ -6,6 +6,7 @@
 #include <HalDisplay.h>
 #include <HalGPIO.h>
 #include <HalPowerManager.h>
+#include <HalRTC.h>
 #include <HalStorage.h>
 #include <HalSystem.h>
 #include <I18n.h>
@@ -244,6 +245,7 @@ void setup() {
 
   HalSystem::begin();
   gpio.begin();
+  halRTC.begin();
   powerManager.begin();
 
   // SD Card Initialization
