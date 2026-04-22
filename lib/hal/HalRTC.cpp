@@ -23,6 +23,11 @@ HalRTC halRTC;
 // ── begin ──────────────────────────────────────────────────────────────────────
 
 void HalRTC::begin() {
+  // Set timezone to Amsterdam (CET/CEST). localtime_r() uses this for all clock displays.
+  // POSIX TZ: UTC+1 in winter, UTC+2 in summer; transitions last Sunday of March/October.
+  setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
+  tzset();
+
   // I2C port 1 is already physically initialised by HalTouch (GT911 @ 0x14).
   // Configure m5::In_I2C so the PCF8563 driver knows which port to use.
   m5::In_I2C.begin(static_cast<i2c_port_t>(kI2CPort), kSDA, kSCL);
